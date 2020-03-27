@@ -25,7 +25,11 @@ All Data used during this project was sourced from Bloomberg.
 
 ## <a name="volatilityindex"></a> Volatility Index Calculation (/python)
 
-### 1. General Information
+- [General Information](#pythongeneral)
+- [calculation of the VSTOXX Index](#pythonvstoxx)
+- [creation of a MSCI world volatility index](#pythonmsci)
+
+### <a name="pythongeneral"></a> 1. General Information
 All functions needed to compute the volatility index can be imported from the VIndex package. The other two classes (plotter_class.py and importer_class.py) are just used to get the data ready and plot it in a nice manner and will therefore not discussed further.<br>
 
 From the VIndex package you can import the volatiltiy class which is used to do all necessary calcualtions. <br>
@@ -74,27 +78,27 @@ This function saves the index created in the class to .xslx. The following param
 >filepath [string]: file path were the index.xlsx should be stored. A trailing "\" is required.
 >indexname [string]: filename of the excel file
 
-### 2. calculation of the VSTOXX Index
+### <a name="pythonvstoxx"></a> 2. calculation of the VSTOXX Index
 > Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (input/data.xlsm) the general structure of the data can be seen. Furthermore this field could be used to download the data at a Bloomberg terminal.
 
 Calculation of the 1 month VSTOXX and comparision with the real 1 month VSTOXX to ensure correct implementation.<br>
 related files: /current_vstoxx.py<br>
 By running this the following graphics will be created:
 [![Options Available per Day](/python/output/VSTOXX_avail_options.png)]()
-[![EUROSTOXX50](https://github.com/Faruman/VolatiltiyCalculations/blob/master/python/output/EUROSTOXX50_lastmonths.png]()
-[![constructed VSTOXX](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/const_VSTOXX.png)]()
-[![real VSTOXX](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/real_VSTOXX.png)]()
-[![Difference between constructed and real VSTOXX](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/VSTOXX_difference_real_const.png)]()
+[![EUROSTOXX50](/python/output/EUROSTOXX50_lastmonths.png]()
+[![constructed VSTOXX](/python/output/const_VSTOXX.png)]()
+[![real VSTOXX](/python/output/real_VSTOXX.png)]()
+[![Difference between constructed and real VSTOXX](/python/output/VSTOXX_difference_real_const.png)]()
 
-### 3. creation of a volatility index based on the MSCI world
+### <a name="pythonmsci"></a> 3. creation of a MSCI world volatility index
 > Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (python/input/data.xlsm) the general structure of the data can be seen. Furthermore this field could be used to download the data at a Bloomberg terminal.
 
 Creation of a new volatility index based on the MSCI World index.<br>
 related files: /msci_world.py<br>
 By running this the following graphics will be created:
-[![Options Available per Day](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/VMSCI_avail_options.png)]()
-[![MSCI World](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/output/MSCIWorld_lastmonths.png)]()
-[![constructed Volatility Index on the MSC World](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/const_VMSCI2.png)]()
+[![Options Available per Day](/python/output/VMSCI_avail_options.png)]()
+[![MSCI World](/python/output/output/MSCIWorld_lastmonths.png)]()
+[![constructed Volatility Index on the MSC World](/python/output/const_VMSCI2.png)]()
 
 ---
 
