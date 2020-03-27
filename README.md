@@ -23,9 +23,9 @@ NO_{} [float]: Number of options available to calculate this subindex.<br>
 N_{} [pd.Timedelta]: time until the options the subindex is based on expire.
 VIndex [float]: Final volatility Index for the day
 
-<b>compare_index</b>(index2)<b>
+<b>compare_index</b>(index2)<br>
 This function compares the vindex stored in the class to another index provided and matches the type dimensions.The following parameter need to be handed over:<br>
-index2 [pd.Dataframe]: Dataframe containing the data of the second index (columns= "date" [pd.Timestamp], "Index" [float])
+index2 [pd.Dataframe]: Dataframe containing the data of the second index (columns= "date" [pd.Timestamp], "Index" [float])<br>
 return [pd.Dataframe]: 
 
 ### 2. calculation of the VSTOXX Index
