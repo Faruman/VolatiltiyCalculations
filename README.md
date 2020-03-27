@@ -30,7 +30,7 @@ All Data used during this project was sourced from Bloomberg.
 - [Creation of a MSCI world volatility index](#pythonmsci)
 
 ### <a name="pythongeneral"></a> 1. General Information
-All functions needed to compute the volatility index can be imported from the VIndex package. The other two classes (plotter_class.py and importer_class.py) are just used to get the data ready and plot it in a nice manner and will therefore not discussed further.<br>
+All functions needed to compute the volatility index can be imported from the VIndex package. The other two classes (plotter_class.py and importer_class.py) are just used to get the data ready and plot it in a nice manner and will therefore not be discussed further.<br>
 
 From the VIndex package you can import the volatiltiy class which is used to do all necessary calcualtions. <br>
 To use this class it needs to be initialized with option and interest data. The requirements for this data are as follows:<br>
