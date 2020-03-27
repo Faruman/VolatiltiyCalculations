@@ -1,18 +1,11 @@
-try:
-    import os
-    os.chdir("project")
-    print("Changed working directory")
-except:
-    print("Already in correct working directory")
-
 ## Data import and description
 # option importer
-from project.importer_class import option_importer
+from importer_class import option_importer
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from project.plotter_class import time_chart, day_time_chart, year_time_chart, bar_chart
+from plotter_class import time_chart, day_time_chart, year_time_chart, bar_chart
 
-data_path = 'input/data_europe_compact_v6.xlsm'
+data_path = 'input/data.xlsm'
 
 option_sheets = ["v2x_call", "v2x_put", "mxwo_call", "mxwo_put", "stoxx_call", "stoxx_put"]
 column_names = ["PX_LAST", "PX_VOLUME"]
@@ -25,7 +18,7 @@ options = opt_importer.clean_data(["PX_LAST", "date"], True)
 
 
 # index importer
-from VIndex import index_importer
+from importer_class import index_importer
 
 index_sheets = ["Index"]
 
@@ -35,7 +28,7 @@ indexes = ind_importer.clean_data(["PX_LAST", "date"], True)
 
 
 #interest rate importer
-from project.importer_class import index_importer
+from importer_class import index_importer
 
 index_sheets = ["Rates"]
 
@@ -77,7 +70,7 @@ plt.show()
 
 ## Volatility Index Calculation
 # create option dataset
-from project.vindex_class import volatility_index
+from VIndex import volatility_index
 import pandas as pd
 from datetime import datetime
 
