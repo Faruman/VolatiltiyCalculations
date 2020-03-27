@@ -85,7 +85,7 @@ Calculation of the 1 month VSTOXX and comparision with the real 1 month VSTOXX t
 related files: /current_vstoxx.py<br>
 By running this the following graphics will be created:
 [![Options Available per Day](/python/output/VSTOXX_avail_options.png)]()
-[![EUROSTOXX50](/python/output/EUROSTOXX50_lastmonths.png]()
+[![EUROSTOXX50](/python/output/EUROSTOXX50_lastmonths.png)]()
 [![constructed VSTOXX](/python/output/const_VSTOXX.png)]()
 [![real VSTOXX](/python/output/real_VSTOXX.png)]()
 [![Difference between constructed and real VSTOXX](/python/output/VSTOXX_difference_real_const.png)]()
