@@ -4,6 +4,7 @@ from importer_class import option_importer
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from plotter_class import time_chart, day_time_chart, bar_chart, year_time_chart
+import numpy as np
 
 data_path = 'input/data.xlsm'
 
@@ -31,7 +32,7 @@ from importer_class import index_importer
 
 index_sheets = ["Rates"]
 
-ind_importer = index_importer('input/data_europe_compact_v6.xlsm')
+ind_importer = index_importer(data_path)
 ind_importer.index_import(index_sheets, False)
 interest_rates = ind_importer.clean_data(["PX_LAST", "PX_VOLUME"], True)
 
@@ -52,16 +53,6 @@ eurstoxx = eurstoxx.set_index("date", drop=True)
 eurstoxx.info()
 plt = year_time_chart(eurstoxx.index, eurstoxx["PX_LAST"], "EUROSTOXX50", "Index Points")
 plt.savefig('output/EURSTOXX50.png', dpi=100, bbox_inches='tight')
-plt.show()
-
-#create log returns
-import numpy as np
-
-#calucalte log returns
-eurstoxx["log_ret"] = np.log(eurstoxx["PX_LAST"].astype('float32')) - np.log(eurstoxx["PX_LAST"].astype('float32').shift(1))
-
-plt = year_time_chart(eurstoxx.index, eurstoxx["log_ret"], "Log Returns EUROSTOXX50", "Log returns")
-plt.savefig('output/EURSTOXX50_logret.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 
