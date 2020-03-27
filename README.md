@@ -122,4 +122,4 @@ If you have any queations please reach out to me via my GitHub account.
 ---
 
 ## License
-Copyright 2020 © DrWatson42 & Faruman</a>.
+Copyright 2020 © DrWatson42 & Faruman</a>
