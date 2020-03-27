@@ -79,7 +79,7 @@ This function saves the index created in the class to .xslx. The following param
 >indexname [string]: filename of the excel file
 
 ### <a name="pythonvstoxx"></a> 2. Calculation of the VSTOXX Index
-> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
+> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
 
 Calculation of the 1 month VSTOXX and comparision with the real 1 month VSTOXX to ensure correct implementation.<br>
 related files: /current_vstoxx.py<br>
@@ -91,7 +91,7 @@ By running this the following graphics will be created:
 [![Difference between constructed and real VSTOXX](/python/output/VSTOXX_difference_real_const.png)]()
 
 ### <a name="pythonmsci"></a> 3. Creation of a MSCI world volatility index
-> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (python/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
+> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
 
 Creation of a new volatility index based on the MSCI World index.<br>
 related files: /msci_world.py<br>
