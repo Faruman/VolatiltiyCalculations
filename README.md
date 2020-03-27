@@ -3,8 +3,8 @@
 ## Table of Contents
 
 - [Introduction](#Introduction)
-- [Volatility Index Calculation (Python)](#Volatility Index Calculation (Python))
-- [Erik (R)](#Erik (R))
+- [Volatility Index Calculation (Python)](#volatilityindex)
+- [Erik (R)](#erik)
 - [Team](#team)
 - [Support](#support)
 - [License](#license)
@@ -14,16 +14,16 @@
 
 ## Introduction
 This project was done as part of the quantitative portfolio management course at the University of St. Gallen. Our main goal was it to get a better understanding for volatility as well as its use cases.<br>
-the Literature we used was:<br>
+The Literature we used was:<br>
 >Hilpsch (2017): Listed Volatility and Variance Derivatives
 
 >Gruenbichler and Longstaff (1996): Valuing Futures and Options on Volatility, Journal of Banking & Finance
 
->All Data used during this project was sourced from Bloomberg.
+All Data used during this project was sourced from Bloomberg.
 
 ---
 
-## Volatility Index Calculation (/python)
+## <a name="volatilityindex"></a> Volatility Index Calculation (/python)
 
 ### 1. General Information
 All functions needed to compute the volatility index can be imported from the VIndex package. The other two classes (plotter_class.py and importer_class.py) are just used to get the data ready and plot it in a nice manner and will therefore not discussed further.<br>
@@ -80,8 +80,8 @@ This function saves the index created in the class to .xslx. The following param
 Calculation of the 1 month VSTOXX and comparision with the real 1 month VSTOXX to ensure correct implementation.<br>
 related files: /current_vstoxx.py<br>
 By running this the following graphics will be created:
-[![Options Available per Day](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/VSTOXX_avail_options.png)]()
-[![EUROSTOXX50](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/EUROSTOXX50_lastmonths.png)]()
+[![Options Available per Day](/python/output/VSTOXX_avail_options.png)]()
+[![EUROSTOXX50](https://github.com/Faruman/VolatiltiyCalculations/blob/master/python/output/EUROSTOXX50_lastmonths.png]()
 [![constructed VSTOXX](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/const_VSTOXX.png)]()
 [![real VSTOXX](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/real_VSTOXX.png)]()
 [![Difference between constructed and real VSTOXX](https://github.com/Faruman/VolatiltiyCalculations/tree/master/python/output/VSTOXX_difference_real_const.png)]()
@@ -98,7 +98,7 @@ By running this the following graphics will be created:
 
 ---
 
-## Erik (/R)
+## <a name="erik"></a> Erik (/R)
 
 
 
@@ -112,13 +112,9 @@ By running this the following graphics will be created:
 
 ## Support
 
-If you have any queations reach out to me via <a href="mailto:faruman.der.weise@googlemail.com" target="_blank">faruman.der.weise@googlemail.com</a>!
+If you have any queations please reach out to me via my GitHub account.
 
 ---
 
 ## License
-
-[![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
-
-- **[MIT license](http://opensource.org/licenses/mit-license.php)**
 - Copyright 2020 © DrWatson42 & Faruman</a>.
