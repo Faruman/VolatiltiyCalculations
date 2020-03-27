@@ -1,0 +1,1 @@
+from vindex_class import volatility_index
