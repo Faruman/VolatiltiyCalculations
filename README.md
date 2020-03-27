@@ -111,7 +111,7 @@ By running this the following graphics will be created:
 
 ## Team
 - <a href="http://github.com/drwatson42" target="_blank">`github.com/drwatson42`</a>
-- <a href="http://github.com/faruman" target="_blank">`github.com/faruman`</a> |
+- <a href="http://github.com/faruman" target="_blank">`github.com/faruman`</a>
 
 ---
 
