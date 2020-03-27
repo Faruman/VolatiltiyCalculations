@@ -26,7 +26,15 @@ VIndex [float]: Final volatility Index for the day
 <b>compare_index</b>(index2)<br>
 This function compares the vindex stored in the class to another index provided and matches the type dimensions.The following parameter need to be handed over:<br>
 index2 [pd.Dataframe]: Dataframe containing the data of the second index (columns= "date" [pd.Timestamp], "Index" [float])<br>
-return [pd.Dataframe]: 
+return [pd.Dataframe]: ["constructed" [float], "real" [float], "diff" [float]]
+constructed [float]:  Volatility index contructed inside the class<br>
+real [float]: Index provided in the function for the matching timestamps<br>
+diff [float]: Difference between the two indices in percent<br>
+
+<b>save_index</b>(filepath, indexname):
+This function saves the index created in the class to .xslx. The following parameter need to be handed over:<br>
+filepath [string]: file path were the index.xlsx should be stored. A trailing "\" is required.
+indexname [string]: filename of the excel file
 
 ### 2. calculation of the VSTOXX Index
 Calculation of the 1 month VSTOXX and comparision with the real 1 month VSTOXX to ensure correct implementation.
