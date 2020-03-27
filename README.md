@@ -97,7 +97,7 @@ Creation of a new volatility index based on the MSCI World index.<br>
 related files: /msci_world.py<br>
 By running this the following graphics will be created:
 [![Options Available per Day](/python/output/VMSCI_avail_options.png)]()
-[![MSCI World](/python/output/output/MSCIWorld_lastmonths.png)]()
+[![MSCI World](/python/output/MSCIWorld_lastmonths.png)]()
 [![constructed Volatility Index on the MSC World](/python/output/const_VMSCI2.png)]()
 
 ---

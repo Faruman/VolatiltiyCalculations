@@ -73,7 +73,7 @@ VSTOXXCalc.save_index("output/", "VSTOXX")
 
 #plot available options per date
 plt = bar_chart(VSTOXXCalc.index.index, VSTOXXCalc.index["NO_1"] , "VSTOXX available options", "# call/put pairs")
-plt.savefig('output/VSTOXX_avail_options.png', dpi=300)
+plt.savefig('output/VSTOXX_avail_options.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 #plot EUROSTOXX50 for selected time frame
