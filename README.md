@@ -107,13 +107,25 @@ By running this the following graphics will be created:
 ---
 
 ## <a name="volatilityderrivatives"></a> Volatility Options Model (/R)
+> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
 
+Daily calibration of Gruenbichler and Longstaff model (1996) based on historical option and future data.<br>
+Visual comparasion of observed and model prices for different estimation dates and maturities.<br>
+related files: /QPM_Volatility_Options_GLModel_and_CalibrationGLModel.Rmd<br>
+related files: /functions.R<br>
+By running this the following graphics will be created:
+[![Observed vs Model Call Prices - 13.02.2020](/r/r_output/Observed vs Model Call Prices - 13.02.2020.png)]()
 
-
----
+---r
 
 ## <a name="volatilitytrading"></a> Volatility Trading Strategy (/R)
+> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
 
+Implementation and analysis of constant proportion trading strategy of EUROSTOXX and VSTOXX for 10years including rebalancing and transaction cost.<br>
+Descriptive analysis of EUROSTOXX, VSTOXX and realized volatility.<br>
+related files: /QPM_Trading_Strategy_Descriptive_Plots.Rmd<br>
+related files: /functions.R<br>
+By running this the following graphics will be created:
 
 
 ---
