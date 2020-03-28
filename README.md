@@ -116,7 +116,7 @@ In progress: replication of realized variance with log contract.<br>
 related files: /QPM_Volatility_Options_GLModel_and_CalibrationGLModel.Rmd<br>
 related files: /functions.R<br>
 
----r
+---
 
 ## <a name="volatilitytrading"></a> Volatility Trading Strategy (/R)
 > Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
