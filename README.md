@@ -3,9 +3,9 @@
 ## Table of Contents
 
 - [Introduction](#Introduction)
-- [Volatility Index Calculation (Python)](#volatilityindex)
-- [Volatility Derrivative Pricing (R)](#volatilityderrivatives)
-- [Volatility Trading Strategy (R)](#volatilitytrading)
+- [Volatility Index Calculation (/Python)](#volatilityindex)
+- [Volatility Derrivative Pricing (/R)](#volatilityderrivatives)
+- [Volatility Trading Strategy (/R)](#volatilitytrading)
 - [Team](#team)
 - [Support](#support)
 - [License](#license)
