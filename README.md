@@ -113,8 +113,6 @@ Daily calibration of Gruenbichler and Longstaff model (1996) based on historical
 Visual comparasion of observed and model prices for different estimation dates and maturities.<br>
 related files: /QPM_Volatility_Options_GLModel_and_CalibrationGLModel.Rmd<br>
 related files: /functions.R<br>
-By running this the following graphics will be created:
-[![Observed vs Model Call Prices - 13.02.2020](/r/r_output/Observed vs Model Call Prices - 13.02.2020.png)]()
 
 ---r
 
@@ -125,7 +123,6 @@ Implementation and analysis of constant proportion trading strategy of EUROSTOXX
 Descriptive analysis of EUROSTOXX, VSTOXX and realized volatility.<br>
 related files: /QPM_Trading_Strategy_Descriptive_Plots.Rmd<br>
 related files: /functions.R<br>
-By running this the following graphics will be created:
 
 
 ---
