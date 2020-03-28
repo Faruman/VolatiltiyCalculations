@@ -126,7 +126,7 @@ By running this the following graphics will be created:
 
 ## Support
 
-If you have any queations please reach out to us via our GitHub accounts.
+If you have any queations please reach out to us via <a href="mailto:faruman.der.weise@googlemail.com"<mail</a>.
 
 ---
 
