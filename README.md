@@ -20,7 +20,7 @@ The Literature we used was:<br>
 
 >Gruenbichler and Longstaff (1996): Valuing Futures and Options on Volatility, Journal of Banking & Finance
 
->Bloomberg L.P. (2020) option prices SX5E, V2X, MXWO / prices SX5E, V2X, MXWO, FVS / interst rates US0003M, US0001M, EUR003M, EUR001M . Retrieved Mar. 17, 2020 from Bloomberg database
+>Bloomberg L.P. (2020) option prices: SX5E, V2X, MXWO / index prices: SX5E, V2X, MXWO, FVS / interst rates: US0003M, US0001M, EUR003M, EUR001M . Retrieved Mar. 17, 2020 from Bloomberg database
 
 ---
 
