@@ -104,13 +104,13 @@ By running this the following graphics will be created:
 
 ---
 
-## <a name="volatilityderrivatives"></a> Volatility Derrivative Pricing (R)
+## <a name="volatilityderrivatives"></a> Volatility Derrivative Pricing (/R)
 
 
 
 ---
 
-## <a name="volatilitytrading"></a> Volatility Derrivative Pricing (R)
+## <a name="volatilitytrading"></a> Volatility Derrivative Pricing (/R)
 
 
 
