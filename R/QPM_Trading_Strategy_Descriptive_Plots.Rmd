@@ -19,7 +19,7 @@ output:
     latex_engine:       pdflatex
 ---
 
-```{r preamble, echo=FALSE, include=FALSE}
+```{r preamble, echo=FALSE, include=FALSE, output=FALSE}
 # set wd
 setwd("C:/Users/eriks/Documents/GitHub/QuantPortfolioMgmtPrjct/project/R")
 
@@ -67,7 +67,7 @@ knitr::opts_chunk$set( dev="pdf"
 ```
 
 # Data Import
-```{r loadData, echo=FALSE, include=FALSE}
+```{r loadData, echo=FALSE, include=FALSE,  output=FALSE}
 # import from output folder
 list_data =list()
 name_data = c("SX5E_Index","V2X_Index","v2x_call","MXWO_Index","mxwo_call","mxwo_put","stoxx_call","stoxx_put","EURIBOR1M", "USLIBOR1M")
@@ -160,7 +160,7 @@ USLIBOR1M= filter(USLIBOR1M, USLIBOR1M$date<=end_date)
 ```
 
 # Descriptive Plots
-```{r basicPlots}
+```{r basicPlots,  output=FALSE}
 # time_series_plot(SX5E_Index,x=c("px_last"),title=c("EUROSTOXX50_Timeseries"),y=NULL)
 min_date= as.Date("01/01/2003", format="%m/%d/%Y")
 max_date= as.Date("03/19/2020", format = "%m/%d/%Y")
@@ -174,7 +174,7 @@ time_series_plot_multiple(data_combine$date, title="EUROSTOXX50_and_VSTOXX", y =
 
 ```
 # Realized vs implied volatility
-```{r realized_vs_implied_vol}
+```{r realized_vs_implied_vol,  output=FALSE}
 
 # calculate realized volatility (here forward looking to easily compare to V2X)
 SX5E_Index$realized_vol = NA
@@ -200,7 +200,7 @@ for (i in  1:(nrow(SX5E_Index)-params$bus_days_month+1)) {
 ```
 
 
-```{r descriptiveAnalysis}
+```{r descriptiveAnalysis,  output=FALSE}
 
 summary(SX5E_Index$ret)
 summary(V2X_Index$ret)
@@ -231,7 +231,7 @@ print(expected_shortfall_annual)
 ## Correlation Portfolio
 
 
-```{r correlationStrategy}
+```{r correlationStrategy,  output=FALSE}
 # Note: riskfree rate is subtracted when calculating portfolio metrics
 
   # dataset asset data 

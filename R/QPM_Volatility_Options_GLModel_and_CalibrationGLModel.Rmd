@@ -19,7 +19,7 @@ output:
     latex_engine:       pdflatex
 ---
 
-```{r preamble, echo=FALSE, include=FALSE}
+```{r preamble, echo=FALSE, include=FALSE,  output=FALSE}
 # set wd
 setwd("C:/Users/eriks/Documents/GitHub/QuantPortfolioMgmtPrjct/project/R")
 
@@ -75,7 +75,7 @@ load_quantlib_calendars(ql_calendars = "Germany/Eurex", "1950-01-01", "2050-01-0
 ```
 
 # Data Import
-```{r loadData, echo=FALSE, include=FALSE}
+```{r loadData, echo=FALSE, include=FALSE,  output=FALSE}
 # import from output folder
 list_data =list()
 name_data = c("SX5E_Index","V2X_Index","v2x_call","MXWO_Index","mxwo_call","mxwo_put","stoxx_call","stoxx_put","EURIBOR1M", "USLIBOR1M","v2x_put", "v2x_FVSA", "v2x_FVSH0", "v2x_FVSJ0", "v2x_FVSK0", "v2x_FVSM0", "v2x_FVSN0", "v2x_FVSQ0","v2x_FVSU0", "v2x_FVSV0", "VMSCI")
@@ -123,7 +123,7 @@ for (i in 1:length(name_data)) {
 
 # Gruenbichler / Longstaff Volatility Option Pricing model
 ## Example forward and option prices for different parameters 
-```{r propertiesModel}
+```{r propertiesModel,  output=FALSE}
 # define intial parameters
   # parameter names as in hilpsch, not in function in R 
   # parameters for CIR process
@@ -349,7 +349,7 @@ for (i in 1:length(name_data)) {
 
 ## Simulation Option Values (work in progress)
 
-```{r monteCarloTest}
+```{r monteCarloTest ,  output=FALSE}
 # model parameters for one day
 kappa = 0.1
 theta = 20
@@ -504,7 +504,7 @@ barrier_down = 15
 ```
 # Model Calibration 
 ## Data Cleaning
-```{r dataCleaningCalibration}
+```{r dataCleaningCalibration ,  output=FALSE}
 
 cut_start_date = as.Date("2020-01-01")
 min_volume = 5
@@ -570,7 +570,7 @@ at_the_money_bounds = c(0.3,4) # optional: only use options that are reasonably 
 ```
 
 ## Parameter Calibration
-```{r parameterCalibration}
+```{r parameterCalibration ,  output=FALSE}
 
 # maturity dates and estimation days for calibration
 maturities_calibration = as.Date(v2x_future_maturities)[2:length(v2x_future_maturities)]
@@ -655,14 +655,14 @@ current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estima
     # 2020-03-13 TO 2020-03-16 - sharp unexplanable drop. see what happens
     # non-convergence even if data is there. try manually, maybe adjust filter
 
-   # save(estimated_parameters, file = "estimated_parameters.Rdata")
+   save(estimated_parameters, file = "./r_output/estimated_parameters.Rdata")
 ```
 
 ## Results
-```{r resultsCalibration}
+```{r resultsCalibration ,  output=FALSE}
 # output table for last days
 table_1_mat = estimated_parameters[[1]][(nrow(estimated_parameters[[1]])-10):(nrow(estimated_parameters[[1]])-4),]
-# write.xlsx(table_1_mat, "./r_output/table_1_mat.xlsx")
+write.xlsx(table_1_mat, "./r_output/table_1_mat.xlsx")
 
 #### PLOTS ####
 
@@ -812,7 +812,7 @@ table_1_mat = estimated_parameters[[1]][(nrow(estimated_parameters[[1]])-10):(nr
 
 # Additional Plot Presentation
 ## Simulation plot GBM and CIR for intro Vola slide
-```{r simulateGeometricBrownianMotion}
+```{r simulateGeometricBrownianMotion ,  output=FALSE}
 # define paramters for simulations
 S_0 = 20
 mu_gmb = 0.02
@@ -856,7 +856,7 @@ simulated_gbm = geometric_brownian_motion(Xzero = S_0, mu=mu_gmb, sigma =sigma_g
 - Replication not working at the moment
 - need to calc price of logcontract  in t=0, invest constant 1 dollar in stock, rest in riskfree (startvalue riskfree != 0)!!
 
-```{r replicationOfRealizedVariance}
+```{r replicationOfRealizedVariance ,  output=FALSE}
 vol_up = 0.25
 vol_down = 0.15
 
