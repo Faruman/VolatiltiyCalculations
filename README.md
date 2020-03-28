@@ -109,8 +109,10 @@ By running this the following graphics will be created:
 ## <a name="volatilityderrivatives"></a> Volatility Options Model (/R)
 > Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
 
-Daily calibration of Gruenbichler and Longstaff model (1996) based on historical option and future data.<br>
-Visual comparasion of observed and model prices for different estimation dates and maturities.<br>
+Daily calibration of Gruenbichler and Longstaff model (1996) for volatility derivatives based on historical option and future data.<br>
+Visual comparision of observed and model prices for different estimation dates and maturities.<br>
+Simulate Cox-Ingersoll-Ross process for pricing derivatives via monte carlo simulation.<br>
+In progress: replication of realized variance with log contract.<br>
 related files: /QPM_Volatility_Options_GLModel_and_CalibrationGLModel.Rmd<br>
 related files: /functions.R<br>
 
@@ -135,7 +137,7 @@ related files: /functions.R<br>
 
 ## Support
 
-If you have any queations please reach out to us via <a href="mailto:faruman.der.weise@googlemail.com">mail</a>.
+If you have any questions please reach out to us via <a href="mailto:faruman.der.weise@googlemail.com">mail</a>.
 
 ---
 
