@@ -4,7 +4,7 @@
 
 - [Introduction](#Introduction)
 - [Volatility Index Calculation (/Python)](#volatilityindex)
-- [Volatility Derrivative Pricing (/R)](#volatilityderrivatives)
+- [Volatility Options Model (/R)](#volatilityderrivatives)
 - [Volatility Trading Strategy (/R)](#volatilitytrading)
 - [Team](#team)
 - [Support](#support)
@@ -106,7 +106,7 @@ By running this the following graphics will be created:
 
 ---
 
-## <a name="volatilityderrivatives"></a> Volatility Derrivative Pricing (/R)
+## <a name="volatilityderrivatives"></a> Volatility Options Model (/R)
 
 
 
