@@ -1,0 +1,913 @@
+---
+params:
+  bus_days: 252
+  bus_days_month: 22
+  days_year: 365
+  # ^^ insert values for crra bounds for infinite values
+title: "Volatility Options / Gruenbichler and Longstaff (1996)"
+author: "Erik_senn"
+date: "14 03 2019"
+output:
+  pdf_document:
+    fig_caption:        true
+    fig_height:         5.5
+    fig_width:          5.5
+    keep_tex:           false
+    number_sections:    true
+    toc:                true
+    toc_depth:          5
+    latex_engine:       pdflatex
+---
+
+```{r preamble, echo=FALSE, include=FALSE}
+# set wd
+setwd("C:/Users/eriks/Documents/GitHub/QuantPortfolioMgmtPrjct/project/R")
+
+# functions
+source("functions.R")
+filter <- dplyr::filter
+select <- dplyr::select
+
+# For non-nix users (as defined in `./shell.nix`)
+library(tidyverse)
+library(xts)
+library(readxl)
+library(openxlsx)
+library(timeSeries)
+library(kableExtra) # tables•
+library(skimr) # decriptive stats
+library(gridExtra)
+library(GGally)
+library(xtable)
+library(caret)
+library(shape)
+library(tikzDevice)
+library(cleandata)
+library(ggcorrplot)
+library(psych)
+library(Sim.DiffProc)
+library(optimx) # optimization package
+library(bizdays) # business days functions
+library(RQuantLib)
+
+options(xtable.comment = FALSE, 
+        digits = 6)
+knitr::opts_chunk$set( dev="pdf"
+                     , external=TRUE
+                     , fig.width=7
+                     , fig.height=4
+                     , fig.path="./assets/figs/"
+                     , cache=FALSE
+                     , echo=FALSE
+                     , warning=TRUE
+                     , message=FALSE
+                     , tidy=TRUE
+                     , cache=TRUE
+                     , fig.align="center"
+                     , fig.pos="!hbt"
+                     )
+
+# load calendars
+load_quantlib_calendars(ql_calendars = "UnitedStates/NYSE", "1950-01-01", "2050-01-01")
+load_quantlib_calendars(ql_calendars = "Germany/Eurex", "1950-01-01", "2050-01-01")
+
+
+```
+
+# Data Import
+```{r loadData, echo=FALSE, include=FALSE}
+# import from output folder
+list_data =list()
+name_data = c("SX5E_Index","V2X_Index","v2x_call","MXWO_Index","mxwo_call","mxwo_put","stoxx_call","stoxx_put","EURIBOR1M", "USLIBOR1M","v2x_put", "v2x_FVSA", "v2x_FVSH0", "v2x_FVSJ0", "v2x_FVSK0", "v2x_FVSM0", "v2x_FVSN0", "v2x_FVSQ0","v2x_FVSU0", "v2x_FVSV0", "VMSCI")
+
+list_data[[1]]  <- read_excel("../output/SX5E Index.xlsx")
+list_data[[2]]   <- read_excel("../output/V2X Index.xlsx")
+list_data[[3]]   <- read_excel("../output/v2x_call.xlsx")
+list_data[[4]]   <- read_excel("../output/MXWO Index.xlsx")
+list_data[[5]]   <- read_excel("../output/mxwo_call.xlsx")
+list_data[[6]]   <- read_excel("../output/mxwo_call.xlsx")
+list_data[[7]]   <- read_excel("../output/stoxx_call.xlsx")
+list_data[[8]]   <- read_excel("../output/stoxx_call.xlsx")
+list_data[[9]]   <- read_excel("../output/EUR001M Index.xlsx")
+list_data[[10]]   <- read_excel("../output/US0001M Index.xlsx")
+list_data[[11]]   <- read_excel("../output/v2x_put.xlsx")
+list_data[[12]]   <- read_excel("../output/FVSA Index.xlsx")
+list_data[[13]]   <- read_excel("../output/FVSH0 Index.xlsx")
+list_data[[14]]   <- read_excel("../output/FVSJ0 Index.xlsx")
+list_data[[15]]   <- read_excel("../output/FVSK0 Index.xlsx")
+list_data[[16]]   <- read_excel("../output/FVSM0 Index.xlsx")
+list_data[[17]]   <- read_excel("../output/FVSN0 Index.xlsx")
+list_data[[18]]   <- read_excel("../output/FVSQ0 Index.xlsx")
+list_data[[19]]   <- read_excel("../output/FVSU0 Index.xlsx")
+list_data[[20]]   <- read_excel("../output/FVSV0 Index.xlsx")
+list_data[[21]]   <- read_excel("../output/VMSCI_0_0.5_2.xlsx")
+
+# rename VMSCI variables to date and PX_LAST
+colnames(list_data[[21]]) = c("date", colnames(list_data[[21]])[2:11],"PX_LAST")
+
+names(list_data) = name_data
+
+# transform date format
+date_transform = function(data) {data$date = as.Date(data$date, format = "%m/%d/%Y" )}
+
+  for (i in 1:length(name_data)) {
+  date_transform(list_data[[i]])
+  list_data[[i]]$name = name_data[i]
+  }
+
+for (i in 1:length(name_data)) {
+  assign(name_data[i],list_data[[i]])
+}
+
+```
+
+# Gruenbichler / Longstaff Volatility Option Pricing model
+## Example forward and option prices for different parameters 
+```{r propertiesModel}
+# define intial parameters
+  # parameter names as in hilpsch, not in function in R 
+  # parameters for CIR process
+  v0_down = 17.5
+  v0_down_extreme = 0
+  v0_up = 22.5
+  v0_up_extreme = 50
+  vol_vol = 2
+  theta = 20 
+  v0 = theta # long term mean = theta 
+  kappa = 0.1
+  zeta = 0 # assumption: no risk premium for additional vola
+  r_f = 0.01
+  
+  # paramters for options / fw
+  K = 20
+  K_up = 22.5
+  K_down = 17.5
+  maturity = 0.5
+  
+  
+  # forwards
+    # basic forward value
+      gl96_forward(kappa, theta,maturity,v0_down)
+      
+    # plot forwards for different maturities and different starting values
+      # calculate fw values
+      mat_ex = seq(0,10,0.05)
+      forward_price_1 = gl96_forward(kappa, theta,mat_ex,v0_down)
+      forward_price_2 = gl96_forward(kappa, theta,mat_ex,v0_up)
+      forward_price_3 = gl96_forward(kappa, theta,mat_ex,v0)
+      long_run_mean = rep(theta, length(mat_ex))
+      
+      # plot function
+      xlab = "Maturity in Years"
+      ylab = "Price"
+      title = "Forward Prices - Low Kappa"
+      names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=mat_ex, xlab = xlab, names_y = names_y, ylab = ylab,y1=forward_price_1, y2=forward_price_2, y3= forward_price_3)
+      
+    # plot forwards for different maturities and different starting values
+        # calculate fw values
+        mat_ex = seq(0,10,0.05)
+        kappa_ex = 0.5
+        forward_price_1 = gl96_forward(kappa_ex, theta,mat_ex,v0_down)
+        forward_price_2 = gl96_forward(kappa_ex, theta,mat_ex,v0_up)
+        forward_price_3 = gl96_forward(kappa_ex, theta,mat_ex,v0)
+        long_run_mean = rep(theta, length(mat_ex))
+        
+        # plot function
+        xlab = "Maturity in Years"
+        ylab = "Price"
+        title = "Forward Prices - High Kappa"
+        names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+      
+        line_plot_multiple(title=title,x=mat_ex, xlab = xlab, names_y = names_y, ylab = ylab,y1=forward_price_1, y2=forward_price_2, y3= forward_price_3)
+        
+  # Call Options
+    # basic call value
+      gl96_call_option(kappa, zeta, theta, vol_vol, maturity, K, v0_down,r_f)
+ 
+    # plot calls for different maturities and different starting values
+      # calculate values
+      mat_ex = seq(0.05,10,0.05)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0_down,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta,theta, vol_vol, mat_ex, K, v0_up,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0,r_f)
+      
+      # plot function
+      xlab = "Maturity in Years"
+      ylab = "Price"
+      title = "Call Prices - Maturity"
+      names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=mat_ex, xlab = xlab, names_y = names_y, ylab = ylab,y1=call_price_1, y2=call_price_2, y3=call_price_3)
+      
+    # plot calls for CRAZY different starting values and different strikes values
+      mat_ex = seq(0.05,10,0.05)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0_down_extreme,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta,theta, vol_vol, mat_ex, K, v0_up_extreme,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0,r_f)
+      
+      # plot function
+      xlab = "Maturity in Years"
+      ylab = "Price"
+      title = "Call Prices - Extreme Start Values"
+      names_y = c("V0 = 0%", "V0 = 100%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=mat_ex, xlab = xlab, names_y = names_y, ylab = ylab,y1=call_price_1, y2=call_price_2, y3=call_price_3)
+      
+    # plot calls for different maturities and different starting values
+      # calculate values
+      strikes = seq(10,30,1)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, strikes, v0_down,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, strikes, v0_up,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, strikes, v0,r_f)   
+      
+      # plot function
+      xlab = "Strike"
+      ylab = "Price"
+      title = "Call Prices - Strikes"
+      names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=strikes, xlab = xlab, names_y = names_y, ylab = ylab,y1=call_price_1, y2=call_price_2, y3=call_price_3)
+      
+  # plot calls for different volatilities and different starting values
+      # calculate values
+      vol_vol_ex = seq(0.25,5,0.05)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol_ex, maturity, K, v0_down,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta, theta, vol_vol_ex, maturity, K, v0_up,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol_ex, maturity, K, v0,r_f)
+      
+      # plot function
+      xlab = "Annual Volatility in Percent"
+      ylab = "Price"
+      title = "Call Prices - Volatility"
+      names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=vol_vol_ex*100, xlab = xlab, names_y = names_y, ylab = ylab,y1=call_price_1, y2=call_price_2, y3 = call_price_3)
+      
+      
+# Put Options
+    # basic put value
+      call = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, K, v0_down,r_f)
+      future = gl96_forward(kappa, theta,maturity,v0_down)
+      gl96_put_call_parity(call, "call", future, K, r_f, maturity)
+      
+    # plot puts for different maturities and different starting values
+      # calculate values
+      mat_ex = seq(0.05,10,0.05)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0_down,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta,theta, vol_vol, mat_ex, K, v0_up,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0,r_f)
+      
+      future_1 = gl96_forward(kappa, theta, mat_ex, v0_down)
+      future_2 = gl96_forward(kappa, theta, mat_ex, v0_up)
+      future_3 = gl96_forward(kappa, theta, mat_ex, v0)
+      
+      put_price_1 = gl96_put_call_parity(call_price_1, "call", future_1, K, r_f, mat_ex)
+      put_price_2 = gl96_put_call_parity(call_price_2, "call", future_2, K, r_f, mat_ex)
+      put_price_3 = gl96_put_call_parity(call_price_3, "call", future_3, K, r_f, mat_ex)
+
+      
+      # plot function
+      xlab = "Maturity in Years"
+      ylab = "Price"
+      title = "Put Prices - Maturity"
+      names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=mat_ex, xlab = xlab, names_y = names_y, ylab = ylab,y1=put_price_1, y2=put_price_2, y3=put_price_3)
+      
+    # plot puts for CRAZY different starting values and different strikes values
+      mat_ex = seq(0.05,1,0.05)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0_down_extreme,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta,theta, vol_vol, mat_ex, K, v0_up_extreme,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol, mat_ex, K, v0,r_f)
+      
+      future_1 = gl96_forward(kappa, theta, mat_ex, v0_down_extreme)
+      future_2 = gl96_forward(kappa, theta, mat_ex, v0_up_extreme)
+      future_3 = gl96_forward(kappa, theta, mat_ex, v0)
+      
+      put_price_1 = gl96_put_call_parity(call_price_1, "call", future_1, K, r_f, mat_ex)
+      put_price_2 = gl96_put_call_parity(call_price_2, "call", future_2, K, r_f, mat_ex)
+      put_price_3 = gl96_put_call_parity(call_price_3, "call", future_3, K, r_f, mat_ex)
+      
+      # plot function
+      xlab = "Maturity in Years"
+      ylab = "Price"
+      title = "Put Prices - Extreme Start Values"
+      names_y = c("V0 = 0%", "V0 = 100%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=mat_ex, xlab = xlab, names_y = names_y, ylab = ylab,y1=put_price_1, y2=put_price_2, y3=put_price_3)
+      
+    # plot puts for different strikes and different starting values
+      # calculate values
+      strikes = seq(10,30,1)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, strikes, v0_down,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, strikes, v0_up,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, strikes, v0,r_f)   
+      
+      future_1 = gl96_forward(kappa, theta, maturity, v0_down)
+      future_2 = gl96_forward(kappa, theta, maturity, v0_up)
+      future_3 = gl96_forward(kappa, theta, maturity, v0)
+      
+      put_price_1 = gl96_put_call_parity(call_price_1, "call", future_1, strikes, r_f, maturity)
+      put_price_2 = gl96_put_call_parity(call_price_2, "call", future_2, strikes, r_f, maturity)
+      put_price_3 = gl96_put_call_parity(call_price_3, "call", future_3, strikes, r_f, maturity)
+      
+      # plot function
+      xlab = "Strike"
+      ylab = "Price"
+      title = "Put Prices - Strikes"
+      names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+      
+      line_plot_multiple(title=title,x=strikes, xlab = xlab, names_y = names_y, ylab = ylab, y1=put_price_1, y2=put_price_2, y3=put_price_3)
+      
+    # plot puts for different volatilities and different starting values
+      # calculate values
+      vol_vol_ex = seq(0.25,5,0.05)
+      call_price_1 = gl96_call_option(kappa, zeta, theta, vol_vol_ex, maturity, K, v0_down,r_f)
+      call_price_2 = gl96_call_option(kappa, zeta, theta, vol_vol_ex, maturity, K, v0_up,r_f)
+      call_price_3 = gl96_call_option(kappa, zeta, theta, vol_vol_ex, maturity, K, v0,r_f)
+      
+      future_1 = gl96_forward(kappa, theta, maturity, v0_down)
+      future_2 = gl96_forward(kappa, theta, maturity, v0_up)
+      future_3 = gl96_forward(kappa, theta, maturity, v0)
+      
+      put_price_1 = gl96_put_call_parity(call_price_1, "call", future_1, K, r_f, maturity)
+      put_price_2 = gl96_put_call_parity(call_price_2, "call", future_2, K, r_f, maturity)
+      put_price_3 = gl96_put_call_parity(call_price_3, "call", future_3, K, r_f, maturity)
+      
+      # put plot function
+      xlab = "Annual Volatility in Percent"
+      ylab = "Price"
+      title = "Put Prices - Volatility"
+      names_y = c("V0 = 17.5%", "V0 = 22.5%", "V0 = long run mean")
+    
+      line_plot_multiple(title=title,x=vol_vol_ex*100, xlab = xlab, names_y = names_y, ylab = ylab,y1=put_price_1, y2=put_price_2, y3 = put_price_3)
+      
+
+```
+
+## Simulation Option Values (work in progress)
+
+```{r monteCarloTest}
+# model parameters for one day
+kappa = 0.1
+theta = 20
+maturity = 0.5
+zeta = 0
+vol_vol = 2
+v0_down = 17.5
+r_f = 0.01
+
+# option parameters
+K = seq(1:41)-1
+maturity = 0.5
+barrier_up = 25
+barrier_down = 15
+
+ # parameters for Monte Carlo 
+  size_process = 200
+  size_process_with_start = size_process+1
+  number_trajectories = 10000
+  number_simulations = number_trajectories
+
+  # simulate CIR-trajactories
+  vol_simulated = cir_simulation_milstein(kappa,theta,vol_vol,v0_down,maturity,size_process, number_trajectories)
+  
+  # plot first 10 trajectories
+  data_x = seq(maturity/size_process_with_start, maturity, maturity/size_process_with_start)
+  xlab = "Time"
+  ylab = "Volatility"
+  title = "Simulated Volatlity Paths"
+  names_y = c("a","b","c","d","e","f","g","h") # to get colors
+  legend = FALSE
+  
+  line_plot_multiple(title=title,x=data_x,names_y=names_y, legend = legend, xlab = xlab, ylab = ylab, y1=vol_simulated[,1], y2=vol_simulated[,2], y3=vol_simulated[,3], y4=vol_simulated[,4], y5=vol_simulated[,5], y6=vol_simulated[,6], y7=vol_simulated[,7], y8=vol_simulated[,8], y9=vol_simulated[,9], y10=vol_simulated[,10])
+
+  
+  
+  strike_vector = K
+  maturity = maturity
+  r_f = r_f
+  
+  # example plot monte carlo and model prices
+        # european options
+          vol_simulated = cir_simulation_milstein(kappa,theta,vol_vol,v0_down,maturity,size_process, number_trajectories) # simulate paths
+          payoff_T = vol_simulated[size_process_with_start,] # simulated payoffs at Maturity
+          mc_price_eu = price_european_option(payoff_T = payoff_T, strike_vector=strike_vector, maturity=maturity, r_f=r_f) # calc option price
+        
+        # American Option that can execute once in the middle of the time intervall
+          # simulate paths to next possible execution date. 
+          paths_am = list(NA, NA,NA)
+          paths_am[[1]] = v0_down
+          # simuate paths until 0.5*maturity
+          paths_am[[2]] = tail(cir_simulation_milstein(kappa,theta,vol_vol,v0_down,0.5*maturity,size_process, number_trajectories),1) # simulate paths and return last value
+          
+          
+############# define lower number of trajactories for american option          
+          
+          # simuate paths from 0.5*maturity to maturity
+          # path = rep(NA, number_trajectories)
+          # for (i in 1:length(paths_am[[2]])){
+          #   path = tail(cir_simulation_milstein(kappa,theta,vol_vol,paths_am[[2]][i],0.5*maturity,size_process, number_trajectories),1)
+          #   paths_am[[3]] = cbind(paths_am[[3]], path)
+          # }
+                
+          
+          
+          # calculate value of european option for all execution_dates_american up to last maturity date
+          mc_price_eu = price_european_option(payoff_T = payoff_T, strike_vector=strike_vector, maturity=maturity, r_f=r_f)
+
+          
+          
+          
+      
+      # theoretical prices to compare
+        forward_model = gl96_forward(kappa, theta,maturity,v0_down)
+        call_eu_model = gl96_call_option(kappa, zeta, theta, vol_vol, maturity, K, v0_down,r_f)
+        put_eu_model = gl96_put_call_parity(call_eu_model, "call", forward_model, K, r_f, maturity)
+
+      # plot simulated and model option prices
+        # calls
+        data_x = mc_price_eu$strike
+        xlab = "Strike"
+        ylab = "Price"
+        title = "Simulated vs Model Call Prices"
+        names_y = c("Simulation","Model","c","d","e","Simulation","g","h") # to get colors
+        legend = TRUE
+        
+        line_point_plot_multiple(title=title,x=data_x,names_y=names_y, legend = legend, xlab = xlab, ylab = ylab, y1=mc_price_eu$call, y2=call_eu_model)
+        
+        data_x = mc_price_eu$strike
+        xlab = "Strike"
+        ylab = "Price"
+        title = "Simulated vs Model Put Prices"
+        names_y = c("Simulation","Model","c","d","e","Simulation","g","h") # to get colors
+        legend = TRUE
+        
+        line_point_plot_multiple(title=title,x=data_x,names_y=names_y, legend = legend, xlab = xlab, ylab = ylab, y1=mc_price_eu$put, y2=put_eu_model)
+#       
+# ## BARRIER OPTION CODE   
+#   # Barrier Options (end)
+#   knock_out_call = 25
+#   knock_in_call = 25
+#   knock_out_put = 15
+#   knock_in_put = 15
+#       
+#       # knock out options
+#         monte_carlo_european$payoff_call_ko  = monte_carlo_european$payoff_call_eu
+#         monte_carlo_european$payoff_call_ko[monte_carlo_european$payoff_call_eu+K>knock_out_call] = 0 
+#         
+#         monte_carlo_european$payoff_put_ko  = monte_carlo_european$payoff_put_eu
+#         monte_carlo_european$payoff_put_ko[K-monte_carlo_european$payoff_put_eu<knock_out_put] = 0 
+#       
+#       # knock in options
+#         monte_carlo_european$payoff_call_ki  = monte_carlo_european$payoff_call_eu
+#         monte_carlo_european$payoff_call_ki[monte_carlo_european$payoff_call_eu+K<knock_in_call] = 0 
+#         
+#         monte_carlo_european$payoff_put_ki  = monte_carlo_european$payoff_put_eu
+#         monte_carlo_european$payoff_put_ki[K-monte_carlo_european$payoff_put_eu>knock_in_put] = 0 
+#       
+#       call_ko_sim = mean(monte_carlo_european$payoff_call_ko*exp(-r_f*maturity))
+#       put_ko_sim =  mean(monte_carlo_european$payoff_put_ko*exp(-r_f*maturity))
+#       call_ki_sim = mean(monte_carlo_european$payoff_call_ki*exp(-r_f*maturity))
+#       put_ki_sim =  mean(monte_carlo_european$payoff_put_ki*exp(-r_f*maturity))
+#       
+#       call_ko_sim
+#       call_ki_sim
+#       call_ko_sim+call_ki_sim
+#       call_eu_sim
+#       call_eu_model
+#       
+#       put_ko_sim
+#       put_ki_sim
+#       put_ko_sim+put_ki_sim
+#       put_eu_sim
+#       put_eu_model
+#       
+# ############# ISSUE AM OPTIONS
+#       
+#   # American Options
+#       monte_carlo_american = as.data.frame(vol_simulated)
+#       i = c(1:size_process_with_start)-1
+#       time_to_maturity = (size_process-i)/size_process*maturity
+#       disFactor = exp(-r_f*i/size_process_with_start*maturity)
+#       monte_carlo_american_call_po = pmax((monte_carlo_american-K)*disFactor,0)
+#       
+#       monte_carlo_american_call_intrinsic =  matrix(data=NA, nrow=nrow(monte_carlo_american_call_po), ncol = ncol(monte_carlo_american_call_po))
+#       
+      # 
+      # for (i in 1:number_trajectories) {
+      # monte_carlo_american_call_intrinsic[,i] = gl96_call_option(kappa, zeta, theta, vol_vol, T_call= time_to_maturity, K, current_value_underlying = monte_carlo_american[,i],r_f) # issue with time to maturity 0
+      # }
+
+```
+# Model Calibration 
+## Data Cleaning
+```{r dataCleaningCalibration}
+
+cut_start_date = as.Date("2020-01-01")
+min_volume = 5
+min_price = 0.5
+at_the_money_bounds = c(0.3,4) # optional: only use options that are reasonably close to at the money. Implemented inside day function
+
+# underlying
+
+  # cut time frame
+  V2X_Index = filter(V2X_Index, date >=cut_start_date)
+  VMSCI = filter(VMSCI, date >=cut_start_date)
+  
+
+# riskfree data
+  # cut time frame
+  EURIBOR1M = filter(EURIBOR1M, date >=cut_start_date)
+  USLIBOR1M = filter(USLIBOR1M, date >=cut_start_date)
+  # transform to decimal rates
+  EURIBOR1M$rate = EURIBOR1M$PX_LAST/100
+  USLIBOR1M$rate = USLIBOR1M$PX_LAST/100
+
+# Future on v2x: cut data, add maturity date, combine data
+  # cut time frame future data: from 2020
+  v2x_future_names = c("v2x_FVSH0", "v2x_FVSJ0", "v2x_FVSK0", "v2x_FVSM0", "v2x_FVSN0", "v2x_FVSQ0","v2x_FVSU0", "v2x_FVSV0")
+  v2x_future_maturities = c("2020-03-17", "2020-04-15","2020-05-20","2020-06-17","2020-07-22","2020-08-19","2020-09-16","2020-10-21")
+  
+  # remove data before cut_start_date AND add maturity date
+  for (i in 1:length(v2x_future_names)){
+    current_data = filter(get(v2x_future_names[i]), date>=cut_start_date)
+    current_data$maturity =  v2x_future_maturities[i]
+    assign(v2x_future_names[i],current_data) 
+  }
+
+  v2x_futures = v2x_FVSH0
+  # combine future data
+  for (i in 2:length(v2x_future_names)){
+    v2x_futures = rbind(v2x_futures, get(v2x_future_names[i]))
+  }
+  
+# Options on v2x: cut data
+    v2x_option_names = c("v2x_call","v2x_put")
+    # cut time frame
+    for (i in 1:length(v2x_option_names)){
+      current_data = filter(get(v2x_option_names[i]), date>=cut_start_date)
+      assign(v2x_option_names[i],current_data) 
+    }
+    
+    # dirty way to get unfiltered option data
+    v2x_call_unfilted = v2x_call
+    v2x_put_unfilted = v2x_put
+      
+    # volume filter
+    for (i in 1:length(v2x_option_names)){
+      current_data = filter(get(v2x_option_names[i]), PX_VOLUME>=min_volume)
+      assign(v2x_option_names[i],current_data) 
+    }
+  
+    # price filter
+    for (i in 1:length(v2x_option_names)){
+      current_data = filter(get(v2x_option_names[i]), PX_LAST>=min_price)
+      assign(v2x_option_names[i],current_data) 
+    }
+```
+
+## Parameter Calibration
+```{r parameterCalibration}
+
+# maturity dates and estimation days for calibration
+maturities_calibration = as.Date(v2x_future_maturities)[2:length(v2x_future_maturities)]
+start_day_estimation = as.Date("2020-01-01")
+end_day_estimation = as.Date("2020-03-19") # make sure last day is some days before first maturity date. 
+current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estimation & V2X_Index$date<=end_day_estimation]) # all business days in timeframe
+
+# estimate parameters for each combintion of maturity date and current date
+
+  estimated_parameters = list() # collect one dataframe per maturity
+  
+  for (i in 1:length(maturities_calibration)) { # loop for maturity dates
+    maturity_date = maturities_calibration[i] # input: maturity date
+    
+    # dataframe with for all estimation days 
+    parms_one_maturity = as.data.frame(current_day_estimation) 
+    parms_one_maturity$kappa = NA
+    parms_one_maturity$theta = NA
+    parms_one_maturity$sigma = NA
+    parms_one_maturity$number_options = NA
+    parms_one_maturity$future = NA
+  
+    for (j in 1:length(current_day_estimation)) {   # loop for estimation days
+        # load input data
+          current_date = current_day_estimation[j]
+          time_to_maturity = bizdays(current_date, maturity_date, cal="QuantLib/Germany/Eurex")/params$bus_days
+       
+          input_call = filter(v2x_call, maturity==maturity_date & date == current_date)[c("PX_LAST","strike","PX_VOLUME")]
+          input_put = filter(v2x_put, maturity==maturity_date & date == current_date)[c("PX_LAST","strike","PX_VOLUME")]
+          input_forward = filter(v2x_futures, maturity==maturity_date & date == current_date)[c("PX_LAST","PX_VOLUME")]
+          input_rf = filter(EURIBOR1M, date == current_date)
+          input_underlying = filter(V2X_Index, date == current_date)
+          
+        # check if option and future data available, otherwise skip day
+        if((nrow(input_call)+nrow(input_put))>0 & nrow(input_forward)>0) {
+          
+          zeta = 0 # no estimation of zeta (vola premium)
+          method = "MSE" # method for loss function
+      
+            
+          # wrap input data for Loss Function and Price Calculation in List
+            input_list_loss_function = list(method, zeta, time_to_maturity, input_call$PX_LAST,input_put$PX_LAST,input_forward$PX_LAST,input_call$strike,input_put$strike,input_underlying$PX_LAST,input_rf$rate)
+            names(input_list_loss_function) = c("method", "zeta", "time_to_maturity", "observed_call_prices","observed_put_prices","observed_forward_price","strike_call","strike_put","current_price_underlying","riskfree")
+            
+          # start parameters for optimization
+            # minimum parameter size = 0 
+            kappa = 0.2
+            theta = 25
+            sigma = 0.2
+            startParms = c(kappa, theta, sigma)
+
+        # optimization: minimize loss function wrt to start Parameters (kappa, theta, sigma)
+            optimOut <- optimx(startParms, function(startParms) loss_function(startParms,input_list=input_list_loss_function), gr = NULL,
+                   method = c("L-BFGS-B"),
+                   lower = 0, upper = Inf,
+                   control = list(), hessian = FALSE)
+
+        # save estimated parameters
+            parms_one_maturity$kappa[j] = optimOut[,1]
+            parms_one_maturity$theta[j] = optimOut[,2]
+            parms_one_maturity$sigma[j] = optimOut[,3]
+            parms_one_maturity$number_options[j] = length(input_list_loss_function$strike_call) +length(input_list_loss_function$strike_put)
+            parms_one_maturity$future[j] = length(input_list_loss_function$observed_forward_price)
+            
+        } # bracket of "if data avaiable" check
+    }
+    # save parameters in list 
+    estimated_parameters[[i]] = parms_one_maturity
+  }
+  
+  # name list elements
+  names_dataframes = paste("maturity", seq(1:length(maturities_calibration)), sep="")
+  names(estimated_parameters) = names_dataframes
+
+      
+# IMPORTANT Notes for estimation: good settings
+  # filter Vol=5
+  # MSE converges more often
+  
+  # issues: 
+    # theta and kappa hard to identify with few options
+    # 2020-03-13 TO 2020-03-16 - sharp unexplanable drop. see what happens
+    # non-convergence even if data is there. try manually, maybe adjust filter
+
+   # save(estimated_parameters, file = "estimated_parameters.Rdata")
+```
+
+## Results
+```{r resultsCalibration}
+# output table for last days
+table_1_mat = estimated_parameters[[1]][(nrow(estimated_parameters[[1]])-10):(nrow(estimated_parameters[[1]])-4),]
+# write.xlsx(table_1_mat, "./r_output/table_1_mat.xlsx")
+
+#### PLOTS ####
+
+# key data plots
+  # define dates to be plotted
+  maturity_dates = maturities_calibration[1:5]
+  maturity_date_1 = maturity_dates[1]
+  
+  plot_date_1 = as.Date("2020-02-13")
+  plot_date_2 = as.Date("2020-03-13")
+  
+  
+  # get observed options 
+    call_observed_1 = filter(v2x_call_unfilted, maturity==maturity_date_1 & date == plot_date_1)[c("PX_LAST","strike")]
+    call_observed_2 = filter(v2x_call_unfilted, maturity==maturity_date_1 & date == plot_date_2)[c("PX_LAST","strike")]
+    
+    price_call_observed_1 = call_observed_1$PX_LAST
+    price_call_observed_2 = call_observed_2$PX_LAST
+    
+    strikes_1 = call_observed_1$strike
+    strikes_2 = call_observed_2$strike
+
+  # get input parameters for models
+  zeta = 0 # assumption: no risk premium for additional vola
+  r_f_1 = filter(EURIBOR1M, date == plot_date_1)$rate
+  r_f_2 = filter(EURIBOR1M, date == plot_date_2)$rate
+  time_to_maturity_1 = bizdays(plot_date_1, maturity_date_1, cal="QuantLib/Germany/Eurex")/params$bus_days
+  time_to_maturity_2 = bizdays(plot_date_2, maturity_date_1, cal="QuantLib/Germany/Eurex")/params$bus_days
+  time_to_maturity_term_struc_1 = bizdays(plot_date_1, maturities_calibration, cal="QuantLib/Germany/Eurex")/params$bus_days
+  time_to_maturity_term_struc_2 = bizdays(plot_date_2, maturities_calibration, cal="QuantLib/Germany/Eurex")/params$bus_days
+  current_value_underlying_1 = filter(V2X_Index, date == plot_date_1)$PX_LAST
+  current_value_underlying_2 = filter(V2X_Index, date == plot_date_2)$PX_LAST
+
+  # get calibrated parameters for first maturity date 
+  parms_plot_date_1 = filter(estimated_parameters$maturity1, current_day_estimation == plot_date_1)[c("kappa", "theta", "sigma")]
+  parms_plot_date_2 = filter(estimated_parameters$maturity1, current_day_estimation == plot_date_2)[c("kappa", "theta", "sigma")]
+
+# get option prices
+  # calc theoretical call option prices
+    price_call_model_1 = gl96_call_option(kappa_call=parms_plot_date_1$kappa, zeta_call=zeta, theta_call=parms_plot_date_1$theta ,sigma_call = parms_plot_date_1$sigma, T_call=time_to_maturity_1,strike_call=strikes_1, current_value_underlying = current_value_underlying_1, riskfree_call= r_f_1)
+
+    price_call_model_2 = gl96_call_option(kappa_call=parms_plot_date_2$kappa, zeta_call=zeta, theta_call=parms_plot_date_2$theta ,sigma_call = parms_plot_date_2$sigma, T_call=time_to_maturity_2,strike_call=strikes_2, current_value_underlying = current_value_underlying_2, riskfree_call= r_f_2)
+    
+# plot option prices model vs observed for both days
+    data_x = strikes_1
+    xlab = "Strike"
+    ylab = "Price"
+    title = "Observed vs Model Call Prices - 13.02.2020"
+    names_y = c("Observed","Model","c","d","e","Simulation","g","h") # to get colors
+    legend = TRUE
+    
+    line_point_plot_multiple(title=title,x=data_x,names_y=names_y, legend = legend, xlab = xlab, ylab = ylab, y2=price_call_model_1,y1=price_call_observed_1)
+    
+    data_x = strikes_2
+    xlab = "Strike"
+    ylab = "Price"
+    title = "Observed vs Model Call Prices - 13.03.2020"
+    names_y = c("Observed","Model","c","d","e","Simulation","g","h") # to get colors
+    legend = TRUE
+    
+    line_point_plot_multiple(title=title,x=data_x,names_y=names_y, legend = legend, xlab = xlab, ylab = ylab, y2=price_call_model_2,y1=price_call_observed_2)
+    
+    
+# term structure forwards - model vs observed
+  # get observed term structure
+  future_observed_term_struc_1 = filter(v2x_futures, date == plot_date_1 & maturity >= maturity_date_1)$PX_LAST
+  future_observed_term_struc_2 = filter(v2x_futures, date == plot_date_2 & maturity >= maturity_date_1)$PX_LAST 
+  
+  # get model term structure
+    # get parameters estimated for maturities
+    parms_term_struc_1 = as.data.frame(matrix(nrow=length(estimated_parameters), ncol=3))
+    parms_term_struc_2=  as.data.frame(matrix(nrow=length(estimated_parameters), ncol=3))
+    colnames(parms_term_struc_1) = c("kappa", "theta", "sigma")
+    colnames(parms_term_struc_2) = c("kappa", "theta", "sigma")
+    for (i in 1:length(estimated_parameters)) {
+      parms_term_struc_1[i,] = filter(estimated_parameters[[i]], current_day_estimation == plot_date_1)[c("kappa", "theta", "sigma")]
+      parms_term_struc_2[i,] = filter(estimated_parameters[[i]], current_day_estimation == plot_date_2)[c("kappa", "theta", "sigma")]
+    }
+    
+    # calulate model forwards
+      future_model_term_struc_1 = gl96_forward(parms_term_struc_1$kappa, parms_term_struc_1$theta, time_to_maturity_term_struc_1, current_value_underlying_1)
+      
+     future_model_term_struc_2 = gl96_forward(parms_term_struc_2$kappa, parms_term_struc_2$theta, time_to_maturity_term_struc_2, current_value_underlying_2)
+      
+      # plot function
+      x_data = maturity_dates
+      xlab = "Maturity"
+      ylab = "Price"
+      title = "Observed vs Model Forward Prices - 13.02.2020"
+      names_y = c("Model", "Observed")
+    
+      line_plot_multiple(title=title,x=x_data, xlab = xlab, names_y = names_y, ylab = ylab,y1=future_model_term_struc_1[1:length(maturity_dates)], y2=future_observed_term_struc_1[1:length(maturity_dates)])
+      
+      # plot function
+      xlab = "Maturity"
+      ylab = "Price"
+      title = "Observed vs Model Forward Prices - 13.03.2020"
+      names_y = c("Model", "Observed")
+    
+      line_plot_multiple(title=title,x=x_data, xlab = xlab, names_y = names_y, ylab = ylab,y1=future_model_term_struc_2[1:length(maturity_dates)], y2=future_observed_term_struc_2[1:length(maturity_dates)])
+      
+
+### MXWO Derivatives
+
+  strikes_mxwo = seq(1:100)
+  current_value_underlying_1_mxwo = filter(VMSCI, date == plot_date_1)$PX_LAST
+  current_value_underlying_2_mxwo = filter(VMSCI, date == plot_date_2)$PX_LAST
+  
+  r_f_1_us = filter(USLIBOR1M, date == plot_date_1)$rate
+  r_f_2_us = filter(USLIBOR1M, date == plot_date_2)$rate
+  
+  # call option prices 
+  price_call_model_1_mxwo = gl96_call_option(kappa_call=parms_plot_date_1$kappa, zeta_call=zeta, theta_call=parms_plot_date_1$theta ,sigma_call = parms_plot_date_1$sigma, T_call=time_to_maturity_1,strike_call=strikes_mxwo, current_value_underlying = current_value_underlying_1_mxwo, riskfree_call= r_f_1_us)
+
+  price_call_model_2_mxwo = gl96_call_option(kappa_call=parms_plot_date_2$kappa, zeta_call=zeta, theta_call=parms_plot_date_2$theta ,sigma_call = parms_plot_date_2$sigma, T_call=time_to_maturity_2,strike_call=strikes_mxwo, current_value_underlying = current_value_underlying_2_mxwo, riskfree_call= r_f_2_us)
+  
+  # term structure (forwards)
+  future_model_term_struc_1_mxwo = gl96_forward(parms_term_struc_1$kappa, parms_term_struc_1$theta, time_to_maturity_term_struc_1, current_value_underlying_1_mxwo)
+      
+ future_model_term_struc_2_mxwo = gl96_forward(parms_term_struc_2$kappa, parms_term_struc_2$theta, time_to_maturity_term_struc_2, current_value_underlying_2_mxwo)
+    
+ 
+     # plot options on both dates
+      x_data= strikes_mxwo
+      xlab = "Strike"
+      ylab = "Price"
+      title = "Call Options VMSCI"
+      names_y = c("13.02.2020", "13.03.2020")
+    
+      line_plot_multiple(title=title,x=x_data, xlab = xlab, names_y = names_y, ylab = ylab,y1=price_call_model_1_mxwo, y2=price_call_model_2_mxwo)
+ 
+       # plot term structures
+      x_data = maturity_dates
+      xlab = "Maturity"
+      ylab = "Price"
+      title = "Term Structures VMSCI"
+      names_y = c("13.02.2020", "13.03.2020")
+    
+      line_plot_multiple(title=title,x=x_data, xlab = xlab, names_y = names_y, ylab = ylab,y1=future_model_term_struc_1_mxwo[1:length(maturity_dates)], y2=future_model_term_struc_2_mxwo[1:length(maturity_dates)])
+
+  
+```
+
+
+
+
+
+# Additional Plot Presentation
+## Simulation plot GBM and CIR for intro Vola slide
+```{r simulateGeometricBrownianMotion}
+# define paramters for simulations
+S_0 = 20
+mu_gmb = 0.02
+theta=20
+sigma_gbm =0.2
+maturity = 10
+size_process = 1000
+size_process_with_start = size_process+1
+number_trajectories = 1000
+
+simulated_gbm = geometric_brownian_motion(Xzero = S_0, mu=mu_gmb, sigma =sigma_gbm, T= maturity, size_process = size_process, number_trajectories = number_trajectories) 
+  
+
+ # plot first 10 trajectories
+  data_x = seq(maturity/size_process_with_start, maturity, maturity/size_process_with_start)
+  xlab = "Time"
+  ylab = "Stock Price"
+  title = "Geometric Brownian Motion Paths"
+  names_y = c("a","b","c","d","e","f","g","h") # to get colors
+  legend = FALSE
+  
+  line_plot_multiple(title=title,x=data_x,names_y=names_y, legend = legend, xlab = xlab, ylab = ylab, y1=simulated_gbm[,1], y2=simulated_gbm[,2], y3=simulated_gbm[,3], y4=simulated_gbm[,4])
+  
+  
+  # simulate CIR-trajactories
+  vol_simulated = cir_simulation_milstein(kappa,theta,sigma_gbm,S_0,maturity,size_process, number_trajectories)
+  
+  # plot first 10 trajectories
+  data_x = seq(maturity/size_process_with_start, maturity, maturity/size_process_with_start)
+  xlab = "Time"
+  ylab = "Volatility"
+  title = "Cox-Ingersoll-Ross Paths"
+  names_y = c("a","b","c","d","e","f","g","h") # to get colors
+  legend = FALSE
+  
+  line_plot_multiple(title=title,x=data_x,names_y=names_y, legend = legend, xlab = xlab, ylab = ylab, y1=vol_simulated[,1], y2=vol_simulated[,2], y3=vol_simulated[,3], y4=vol_simulated[,4])  
+
+```
+
+## Replication of Realized Variance Plot (work in progress)
+- Replication not working at the moment
+- need to calc price of logcontract  in t=0, invest constant 1 dollar in stock, rest in riskfree (startvalue riskfree != 0)!!
+
+```{r replicationOfRealizedVariance}
+vol_up = 0.25
+vol_down = 0.15
+
+r_f = 0.00
+S_0 = 20
+mu_gmb = 0.00
+maturity = 1
+size_process = 2000
+size_process_with_start = size_process+1
+number_trajectories = 1
+    
+set.seed=1
+
+r <- rnorm(1000, mu_gmb, vol_up)
+P <- S_0*cumprod(1+r)
+
+simulated_stock = geometric_brownian_motion(Xzero = S_0, mu=mu_gmb, sigma =vol_up, T= maturity, size_process = size_process, number_trajectories = number_trajectories)
+
+# realized variance
+ret_simulated_stock = simulated_stock[2:length(simulated_stock)] / simulated_stock[2:length(simulated_stock)-1]-1
+var_ret = var(ret_simulated_stock)  *size_process
+var_ret
+sqrt(var_ret)
+ 
+  # dynamic pf of stock
+    share_stock = rep(NA, size_process)
+    value_rf_position = rep(NA, size_process)
+    share_stock[1] = 1/S_0
+    value_rf_position[1] = 0
+    
+    for (i in 2:size_process){
+        share_stock[i] = 1/simulated_stock[i,1]
+        value_rf_position[i] = -(share_stock[i]-share_stock[i-1])*simulated_stock[i,1] +value_rf_position[i-1]*exp(r_f*maturity/size_process)
+    }
+
+    
+# logcontract
+payoff_log_contract = log(tail(simulated_stock[,1],1)/S_0)
+
+    t(simulated_stock)
+    value_rf_position
+    share_stock
+    payoff_log_contract
+
+# aggregated position
+  # riskfree + asset - logcontract
+(tail(value_rf_position,1) - payoff_log_contract)
+var_ret
+sqrt(var_ret)
+  2/maturity*(tail(value_rf_position,1) - payoff_log_contract) -var_ret 
+
+```
+
+

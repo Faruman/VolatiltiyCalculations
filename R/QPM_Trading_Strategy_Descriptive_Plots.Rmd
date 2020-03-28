@@ -1,0 +1,429 @@
+---
+params:
+  bus_days: 252
+  bus_days_month: 22
+  days_year: 365
+  # ^^ insert values for crra bounds for infinite values
+title: "QPM_ES"
+author: "Erik_senn"
+date: "14 03 2019"
+output:
+  pdf_document:
+    fig_caption:        true
+    fig_height:         5.5
+    fig_width:          5.5
+    keep_tex:           false
+    number_sections:    true
+    toc:                true
+    toc_depth:          5
+    latex_engine:       pdflatex
+---
+
+```{r preamble, echo=FALSE, include=FALSE}
+# set wd
+setwd("C:/Users/eriks/Documents/GitHub/QuantPortfolioMgmtPrjct/project/R")
+
+# source functions
+source("functions.R")
+filter <- dplyr::filter
+select <- dplyr::select
+
+# For non-nix users (as defined in `./shell.nix`)
+library(tidyverse)
+library(xts)
+library(readxl)
+library(openxlsx)
+library(timeSeries)
+library(kableExtra) # tables•
+library(skimr) # decriptive stats
+library(gridExtra)
+library(GGally)
+library(xtable)
+library(caret)
+library(shape)
+library(tikzDevice)
+library(cleandata)
+library(ggcorrplot)
+library(psych)
+library(pracma) # moving average
+
+options(xtable.comment = FALSE, 
+        digits = 6)
+knitr::opts_chunk$set( dev="pdf"
+                     , external=TRUE
+                     , fig.width=7
+                     , fig.height=4
+                     , fig.path="./assets/figs/"
+                     , cache=FALSE
+                     , echo=FALSE
+                     , warning=TRUE
+                     , message=FALSE
+                     , tidy=TRUE
+                     , cache=TRUE
+                     , fig.align="center"
+                     , fig.pos="!hbt"
+                     )
+
+```
+
+# Data Import
+```{r loadData, echo=FALSE, include=FALSE}
+# import from output folder
+list_data =list()
+name_data = c("SX5E_Index","V2X_Index","v2x_call","MXWO_Index","mxwo_call","mxwo_put","stoxx_call","stoxx_put","EURIBOR1M", "USLIBOR1M")
+
+list_data[[1]]  <- read_excel("../output/SX5E Index.xlsx")
+list_data[[2]]   <- read_excel("../output/V2X Index.xlsx")
+list_data[[3]]   <- read_excel("../output/v2x_call.xlsx")
+list_data[[4]]   <- read_excel("../output/MXWO Index.xlsx")
+list_data[[5]]   <- read_excel("../output/mxwo_call.xlsx")
+list_data[[6]]   <- read_excel("../output/mxwo_call.xlsx")
+list_data[[7]]   <- read_excel("../output/stoxx_call.xlsx")
+list_data[[8]]   <- read_excel("../output/stoxx_call.xlsx")
+list_data[[9]]   <- read_excel("../output/EUR001M Index.xlsx")
+list_data[[10]]   <- read_excel("../output/US0001M Index.xlsx")
+
+names(list_data) = name_data
+
+# transform date format
+date_transform = function(data) {data$date = as.Date(data$date, format = "%m/%d/%Y" )}
+
+  for (i in 1:length(name_data)) {
+  date_transform(list_data[[i]])
+  list_data[[i]]$name = name_data[i]
+  }
+
+for (i in 1:length(name_data)) {
+  assign(name_data[i],list_data[[i]])
+}
+
+start_date = "2003-01-01"
+end_date = NULL
+
+# cut Sx5E, V2X, MXWO, EURIBOR, LIBOR on same timeframe
+SX5E_Index = filter(SX5E_Index, SX5E_Index$date>=start_date)
+V2X_Index= filter(V2X_Index, V2X_Index$date>=start_date)
+MXWO_Index= filter(MXWO_Index, MXWO_Index$date>=start_date)
+EURIBOR1M= filter(EURIBOR1M, EURIBOR1M$date>=start_date)
+USLIBOR1M= filter(USLIBOR1M, USLIBOR1M$date>=start_date)
+
+if(is.null(end_date)==F) {
+SX5E_Index = filter(SX5E_Index, SX5E_Index$date>=end_date)
+V2X_Index= filter(V2X_Index, V2X_Index$date<=end_date)
+MXWO_Index= filter(MXWO_Index, MXWO_Index$date<=end_date)
+EURIBOR1M= filter(EURIBOR1M, EURIBOR1M$date<=end_date)
+USLIBOR1M= filter(USLIBOR1M, USLIBOR1M$date<=end_date)
+}
+
+# checks for merging
+  # same number of observations: yes!
+  nrow(SX5E_Index)
+  nrow(V2X_Index)
+  nrow(MXWO_Index)
+  nrow(EURIBOR1M)
+  nrow(USLIBOR1M)
+  
+  # nas? No 
+  summary(SX5E_Index$PX_LAST)
+  summary(V2X_Index$PX_LAST)
+  summary(MXWO_Index$PX_LAST)
+  summary(EURIBOR1M$PX_LAST)
+  summary(USLIBOR1M$PX_LAST)
+
+  
+# transform riskfree to decimal (daily) returns and get cum return
+  EURIBOR1M$ret = EURIBOR1M$PX_LAST/100/params$bus_days
+  EURIBOR1M$lret = log(EURIBOR1M$ret+1)
+  EURIBOR1M$cret = c(1, cumprod(EURIBOR1M$ret[-1]+1))-1
+  
+  USLIBOR1M$ret = USLIBOR1M$PX_LAST/100/params$bus_days
+  USLIBOR1M$lret = log(USLIBOR1M$ret+1)
+  USLIBOR1M$cret = c(1, cumprod(USLIBOR1M$ret[-1]+1))-1
+
+# add returns + excess returns and logreturns for Index
+  SX5E_Index$ret = SX5E_Index$PX_LAST/(c(NA,SX5E_Index$PX_LAST[-length(SX5E_Index$PX_LAST)]))-1
+  SX5E_Index$lret = log(SX5E_Index$ret+1)
+  SX5E_Index$cret = c(1, cumprod(SX5E_Index$ret[-1]+1))-1
+  
+  V2X_Index$ret = V2X_Index$PX_LAST/(c(NA,V2X_Index$PX_LAST[-length(V2X_Index$PX_LAST)]))-1
+  V2X_Index$lret = log(V2X_Index$ret+1)
+  V2X_Index$cret = c(1, cumprod(V2X_Index$ret[-1]+1))-1
+  
+  MXWO_Index$ret = MXWO_Index$PX_LAST/(c(NA,MXWO_Index$PX_LAST[-length(MXWO_Index$PX_LAST)]))-1
+  MXWO_Index$lret = log(MXWO_Index$ret+1)
+  MXWO_Index$cret = c(1, cumprod(MXWO_Index$ret[-1]+1))-1
+  
+# crate dataset of stoxx and vstoxx
+  stoxx_vstoxx = inner_join(SX5E_Index,V2X_Index,by=c("date"), suffix=c("_S", "_V"))
+
+
+```
+
+# Descriptive Plots
+```{r basicPlots}
+# time_series_plot(SX5E_Index,x=c("px_last"),title=c("EUROSTOXX50_Timeseries"),y=NULL)
+min_date= as.Date("01/01/2003", format="%m/%d/%Y")
+max_date= as.Date("03/19/2020", format = "%m/%d/%Y")
+time_series_plot_basic(date=SX5E_Index$date,y =SX5E_Index$PX_LAST, title=c("EUROSTOXX50"),ylab = "Index_Points",  min_date = min_date, max_date = max_date)
+
+time_series_plot_basic(date=V2X_Index$date,y =V2X_Index$PX_LAST, title=c("VSTOXX"),ylab = "Index_Points / Volatility",  min_date = min_date, max_date = max_date)
+
+data_combine = rbind(SX5E_Index,V2X_Index)
+
+time_series_plot_multiple(data_combine$date, title="EUROSTOXX50_and_VSTOXX", y = data_combine$ret, ylab="Return",data_combine$name, min_date = min_date, max_date = max_date)
+
+```
+# Realized vs implied volatility
+```{r realized_vs_implied_vol}
+
+# calculate realized volatility (here forward looking to easily compare to V2X)
+SX5E_Index$realized_vol = NA
+for (i in  1:(nrow(SX5E_Index)-params$bus_days_month+1)) {
+  SX5E_Index$realized_vol[i] = sd(SX5E_Index$ret[i:(i+params$bus_days_month-1)])*sqrt(params$bus_days)
+}
+
+# plot relalized vs implied vol
+      xlab = "Date"
+      ylab = "Volatility"
+      y_percent = TRUE
+      title = "Implied vs Realized Volatility EUROSTOXX"
+      names_y = c("Implied Vol", "Realized Vol")
+      data_x = SX5E_Index$date[c(1:(nrow(SX5E_Index)-params$bus_days_month))]
+      
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=V2X_Index$PX_LAST[c(1:(nrow(SX5E_Index)-params$bus_days_month))]/100, y2 =  SX5E_Index$realized_vol[c(1:(nrow(SX5E_Index)-params$bus_days_month))])
+      
+      
+    #  calc correlation
+      print("Correlation implied and realized VOLA")
+      cor(SX5E_Index$realized_vol[c(2:(nrow(SX5E_Index)-params$bus_days_month))],V2X_Index$PX_LAST[c(2:(nrow(SX5E_Index)-params$bus_days_month))] )
+
+```
+
+
+```{r descriptiveAnalysis}
+
+summary(SX5E_Index$ret)
+summary(V2X_Index$ret)
+
+annual_return = c(mean(SX5E_Index$ret, na.rm=TRUE)*params$bus_days, mean(V2X_Index$ret,  na.rm=TRUE)*params$bus_days)
+
+var_covar_matrix = var(stoxx_vstoxx[,c("lret_S", "lret_V")], stoxx_vstoxx[,c("lret_S", "lret_V")], use = "pairwise.complete.obs")
+correl_matrix = cor(stoxx_vstoxx[,c("lret_S", "lret_V")], stoxx_vstoxx[,c("lret_S", "lret_V")], use = "pairwise.complete.obs",
+    method = c("pearson"))
+value_at_risk_annual = apply(stoxx_vstoxx[,c("ret_S", "ret_V")],2,value_at_risk_empirical, significance_level=0.05, time=params$bus_days)
+expected_shortfall_annual = apply(stoxx_vstoxx[,c("ret_S", "ret_V")],2,expected_shortfall_empirical, significance_level=0.05,time=params$bus_days)
+
+print("Annual mean return")
+print(annual_return)
+print("Variance-Covariance-Matrix")
+print(var_covar_matrix)
+print("Correlation-Matrix")
+print(correl_matrix)
+print("Value at Risk")
+print(value_at_risk_annual)
+print("Expected Shortfall")
+print(expected_shortfall_annual)
+
+```
+
+# Trading Strategys in Eurostoxx (later MSCI-World) 
+
+## Correlation Portfolio
+
+
+```{r correlationStrategy}
+# Note: riskfree rate is subtracted when calculating portfolio metrics
+
+  # dataset asset data 
+  base_asset_data = SX5E_Index[,c("date")]
+  # add asset price (no need to be normalized)
+    # naming: asset1 and asset2 for function to work generally
+    base_asset_data$price_asset1 = SX5E_Index$cret+1
+    base_asset_data$price_asset2 = V2X_Index$cret+1
+    
+    # add asset and riskfree returns for plots
+    base_asset_data$cret_riskfree = EURIBOR1M$cret
+    base_asset_data$ret_riskfree = EURIBOR1M$ret
+    base_asset_data$cret_asset1 = SX5E_Index$cret
+    base_asset_data$ret_asset1 = SX5E_Index$ret
+    base_asset_data$cret_asset2 = V2X_Index$cret
+    base_asset_data$ret_asset2 = V2X_Index$ret
+
+  # start and end date for strategy
+  start_correl_strat = "2005-01-01"
+  end_correl_strat = "2014-12-31"
+  
+  base_asset_data = filter(base_asset_data, date>=start_correl_strat & date <=end_correl_strat)
+    # rescale cum returns
+   base_asset_data$cret_riskfree = (1+base_asset_data$cret_riskfree)/(1+base_asset_data$cret_riskfree[1])-1
+   base_asset_data$cret_asset1 = (1+base_asset_data$cret_asset1)/(1+base_asset_data$cret_asset1[1])-1
+   base_asset_data$cret_asset2 = (1+base_asset_data$cret_asset2)/(1+base_asset_data$cret_asset2[1])-1
+   
+  # initialize dataframe for strategys
+    # strategys:
+    name_strategy = c("Only_Stoxx", "No_Reb_No_TK", "1d_Reb_No_TK","1d_Reb_TK","5d_Reb_No_TK","5d_Reb_TK","22d_Reb_No_TK", "22d_Reb_TK")
+    startvalue_pf = rep(100, 8) # initial investment in portfolio
+    transaction_cost_share = c(0,0,0,0.025,0, 0.025,0,0.025) # estimate share of transaction cost per rebalancing step (bid-ask-spreads, fees etc)
+    rebalance_intervall_days = c(nrow(base_asset_data), nrow(base_asset_data), 1,1,5,5,22,22) # rebalance intervall in days. put to max length if no rebalancing
+    share_sx5e = c(1, rep(0.8,7)) # share invested in asset 1
+    alpha_var = 0.05 # bound for value at risk and expected shortfall
+    
+    # combine to dataframe
+    strategy_overview = as.data.frame(cbind(name_strategy, startvalue_pf, transaction_cost_share, rebalance_intervall_days, share_sx5e))
+    
+    # initialize risk measures
+    strategy_overview$total_return = NA
+    strategy_overview$annual_return_av = NA
+    strategy_overview$annual_sd_av = NA
+    strategy_overview$annual_sr = NA
+    strategy_overview$value_at_risk_annual = NA
+    strategy_overview$expected_shortfall_annual = NA
+    strategy_overview$transaction_cost_sum = NA
+
+    # create list containing full data on strategies
+    strategy_data = list()
+    length(strategy_data) = nrow(strategy_overview)
+    names(strategy_data) = name_strategy
+   
+    # calculate pf returns and risk metrics  
+    
+    for (i in 1:nrow(strategy_overview)) {
+      # portfolio returns + value
+      strategy_data[[i]] = constantProportionPortfolio(data = base_asset_data, startvalue_pf = startvalue_pf[i], share_asset1 = share_sx5e[i], rebalance_intervall_days= rebalance_intervall_days[i],transaction_cost_share=transaction_cost_share[i])
+      
+      current_data = strategy_data[[i]]
+    
+      
+      # basic portfolio metrics
+      strategy_overview$total_return[i] = current_data$cret_rebalance_pf[length(current_data$cret_rebalance_pf)]
+      strategy_overview$annual_return_av[i] =  strategy_overview$total_return[i] / length(current_data$cret_rebalance_pf) * params$bus_days
+      strategy_overview$annual_sd_av[i] = sd(current_data$ret_rebalance_pf, na.rm=TRUE)*sqrt(params$bus_days)
+
+      # excess portofolio metrics
+      strategy_overview$total_excess_return[i] = (1+current_data$cret_rebalance_pf[length(current_data$cret_rebalance_pf)])/(1+tail(base_asset_data$cret_riskfree,1))-1
+      strategy_overview$annual_excess_return[i] = strategy_overview$total_excess_return[i] / length(current_data$cret_rebalance_pf) * params$bus_days
+      strategy_overview$annual_sd_av_excess[i] = sd(current_data$ret_rebalance_pf-base_asset_data$ret_riskfree, na.rm=TRUE)*sqrt(params$bus_days)
+      strategy_overview$annual_sr[i] = strategy_overview$annual_excess_return[i] / strategy_overview$annual_sd_av_excess[i]     
+
+      # risk portfolio metrics
+      strategy_overview$value_at_risk_annual[i] = value_at_risk_empirical(current_data$ret_rebalance_pf, alpha_var, params$bus_days)
+      strategy_overview$expected_shortfall_annual[i] = expected_shortfall_empirical(current_data$ret_rebalance_pf, alpha_var, params$bus_days)
+      strategy_overview$transaction_cost_sum[i] = sum(current_data$transaction_cost_rebalance)
+    }
+    
+    write.xlsx(strategy_overview,file="./r_output/strategy_overview_vstoxx_stoxx_correlation.xlsx")
+     xtable(strategy_overview,"latex")
+     
+# plot strategys
+  # get return series 
+     # strategies
+     Only_Stoxx_Strategy =  strategy_data[[1]]$cret_rebalance_pf
+     No_Reb_No_TK_Strategy = strategy_data[[2]]$cret_rebalance_pf
+     d1_Reb_No_TK_Strategy = strategy_data[[3]]$cret_rebalance_pf
+     d1_Reb_TK_Strategy = strategy_data[[4]]$cret_rebalance_pf
+     d5_Reb_No_TK_Strategy = strategy_data[[5]]$cret_rebalance_pf
+     d5_Reb_TK_Strategy = strategy_data[[6]]$cret_rebalance_pf
+     d22_Reb_No_TK_Strategy = strategy_data[[7]]$cret_rebalance_pf
+     d22_Reb_TK_Strategy = strategy_data[[8]]$cret_rebalance_pf
+     
+     # base data
+     r_f_strategy = base_asset_data$cret_riskfree
+     eurostoxx_strategy = base_asset_data$cret_asset1
+     vstoxx_strategy = base_asset_data$cret_asset2
+     
+   # simple plot with no rebalance strategy
+      xlab = "Date"
+      ylab = "Total Portfolio Return"
+      y_percent = TRUE
+      title = "No Rebalancing (all)"
+      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK")
+      data_x = base_asset_data$date
+    
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy)
+     
+    # plot with rebalancing strategies
+      xlab = "Date"
+      ylab = "Total Portfolio Return"
+      y_percent = TRUE
+      title = "Rebalancing (all)"
+      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK", "1d_Reb_No_TK","5d_Reb_No_TK","22d_Reb_No_TK")
+      data_x = base_asset_data$date
+      
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy, y4=d1_Reb_No_TK_Strategy, y5=d5_Reb_No_TK_Strategy, y6=d22_Reb_No_TK_Strategy)
+      
+    # plot with rebalancing strategies and transaction cost
+      xlab = "Date"
+      ylab = "Total Portfolio Return"
+      y_percent = TRUE
+      title = "Rebalancing with Transaction Cost (all)"
+      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK", "1d_Reb_No_TK","1d_Reb_TK","5d_Reb_No_TK","5d_Reb_TK","22d_Reb_No_TK", "22d_Reb_TK")
+      data_x = base_asset_data$date
+      
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy, y4=d1_Reb_No_TK_Strategy, y6=d5_Reb_No_TK_Strategy, y8=d22_Reb_No_TK_Strategy, y5 =d1_Reb_TK_Strategy ,y7=d5_Reb_TK_Strategy,y9=d22_Reb_TK_Strategy)
+      
+      
+ # plots for presentation
+     # base plot-Cum RETURNS eurostoxx, vstoxx: shows negative correlation
+      xlab = "Date"
+      ylab = "Total Return"
+      y_percent = TRUE
+      title = "Returns Eurostoxx and VSTOXX"
+      names_y = c("EUROSTOXX", "VSTOXX")
+      data_x = base_asset_data$date
+
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=base_asset_data$cret_asset1, y2=base_asset_data$cret_asset2)
+      
+
+    # variance and correlation
+      var_covar_matrix = var(base_asset_data[,c("ret_asset1", "ret_asset2")],base_asset_data[,c("ret_asset1", "ret_asset2")], use = "pairwise.complete.obs")
+      correl_matrix = cor(base_asset_data[,c("ret_asset1", "ret_asset2")],base_asset_data[,c("ret_asset1", "ret_asset2")], use = "pairwise.complete.obs",
+    method = c("pearson"))
+      
+      print("Annualized Variance Daily Returns EUROSTOXX")
+      print(sqrt(var_covar_matrix[1,1]*params$bus_days))
+      print("Annualized Variance Daily Returns VSTOXX")
+      print(sqrt(var_covar_matrix[2,2]*params$bus_days))
+      
+      print("Negative Correlation of Daily Returns VSTOXX and EUROSTOXX")
+      print(correl_matrix[2,1])
+      
+ # simple plot with no rebalance strategy
+      xlab = "Date"
+      ylab = "Total Portfolio Return"
+      y_percent = TRUE
+      title = "No Rebalancing"
+      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK")
+      data_x = base_asset_data$date
+    
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy)
+     
+    # plot with rebalancing strategies
+      xlab = "Date"
+      ylab = "Total Portfolio Return"
+      y_percent = TRUE
+      title = "Rebalancing"
+      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK", "1d_Reb_No_TK","22d_Reb_No_TK")
+      data_x = base_asset_data$date
+      
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy, y4=d1_Reb_No_TK_Strategy, y5=d22_Reb_No_TK_Strategy)
+      
+    # plot with rebalancing strategies and transaction cost
+      xlab = "Date"
+      ylab = "Total Portfolio Return"
+      y_percent = TRUE
+      title = "Rebalancing with Transaction Cost"
+      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK", "1d_Reb_No_TK","1d_Reb_TK","22d_Reb_No_TK", "22d_Reb_TK")
+      data_x = base_asset_data$date
+      
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy, y4=d1_Reb_No_TK_Strategy, y6=d22_Reb_No_TK_Strategy, y5 =d1_Reb_TK_Strategy,y7=d22_Reb_TK_Strategy)
+      
+      
+
+```
+
+
+## Delta-Hedging (not done)
+- calc theoretical profit 
+- calc relalized profit
+- use futures instead of index
+
