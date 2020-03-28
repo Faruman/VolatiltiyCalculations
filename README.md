@@ -14,7 +14,7 @@
 ---
 
 ## Introduction
-This project was done as part of the quantitative portfolio management course at the University of St. Gallen. Our main goal was it to get a better understanding for volatility as well as its use cases.<br>
+This project was done as part of the quantitative portfolio management course at the University of St. Gallen. Our main goal was it to get a better understanding of volatility as well as its use cases.<br>
 The Literature we used was:<br>
 >Hilpsch (2017): Listed Volatility and Variance Derivatives
 
