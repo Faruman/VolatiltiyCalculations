@@ -56,28 +56,30 @@ This function calculates the 30 day volatility index. The following parameter ca
 The return contains the daily volatiltiy index in the column "VIndex". The data provided in the other columns is described below:<br>
 ><b>return</b> [pd.Dataframe]: ["V_1" [float], "M_1" [pd.Timestamp], "NO_1" [float], "V_2" [float], "M_2" [pd.Timestamp], "NO_2" [float], "N_1" [float], "N_2" [float], "T_1" [float], "T_2" [float],"VIndex" [float]]<br>
 
->V_{} [float]: Value of subindex.<br>
->M_{} [pd.Timestamp]: Maturity date of the options the subindex is based on.<br>
->NO_{} [float]: Number of options available to calculate this subindex.<br>
->N_{} [pd.Timedelta]: time until the options the subindex is based on expire.
->VIndex [float]: Final volatility Index for the day
+><b>V_{}</b> [float]: Value of subindex.<br>
+><b>M_{}</b> [pd.Timestamp]: Maturity date of the options the subindex is based on.<br>
+><b>NO_{}</b> [float]: Number of options available to calculate this subindex.<br>
+><b>N_{}</b> [pd.Timedelta]: time until the options the subindex is based on expire.
+><b>VIndex</b> [float]: Final volatility Index for the day
 
 ```python
 VSTOXXCalc.compare_index(index2)
 ```
 This function compares the vindex stored in the class to another index provided and matches the type dimensions.The following parameter need to be handed over:<br>
->index2 [pd.Dataframe]: Dataframe containing the data of the second index (columns= "date" [pd.Timestamp], "Index" [float])<br>
->return [pd.Dataframe]: ["constructed" [float], "real" [float], "diff" [float]]
->constructed [float]:  Volatility index contructed inside the class<br>
->real [float]: Index provided in the function for the matching timestamps<br>
->diff [float]: Difference between the two indices in percent<br>
+><b>index2</b> [pd.Dataframe]: Dataframe containing the data of the second index (columns= "date" [pd.Timestamp], "Index" [float])<br>
+
+><b>return</b> [pd.Dataframe]: ["constructed" [float], "real" [float], "diff" [float]]
+
+><b>constructed</b> [float]:  Volatility index contructed inside the class<br>
+><b>real</b> [float]: Index provided in the function for the matching timestamps<br>
+><b>diff</b> [float]: Difference between the two indices in percent<br>
 
 ```python
 VSTOXXCalc.save_index(filepath, indexname)
 ```
 This function saves the index created in the class to .xslx. The following parameter need to be handed over:<br>
->filepath [string]: file path were the index.xlsx should be stored. A trailing "\" is required.
->indexname [string]: filename of the excel file
+><b>filepath</b> [string]: file path were the index.xlsx should be stored. A trailing "\" is required.
+><b>indexname</b> [string]: filename of the excel file
 
 ### <a name="pythonvstoxx"></a> 2. Calculation of the VSTOXX Index
 > Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
