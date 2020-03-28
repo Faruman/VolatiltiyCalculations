@@ -112,7 +112,7 @@ By running this the following graphics will be created:
 
 ---
 
-## <a name="volatilitytrading"></a> Volatility Derrivative Pricing (/R)
+## <a name="volatilitytrading"></a> Volatility Trading Strategy (/R)
 
 
 
