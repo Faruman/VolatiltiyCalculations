@@ -59,8 +59,8 @@ The return contains the daily volatiltiy index in the column "VIndex". The data 
 ><b>V_{}</b> [float]: Value of subindex.<br>
 ><b>M_{}</b> [pd.Timestamp]: Maturity date of the options the subindex is based on.<br>
 ><b>NO_{}</b> [float]: Number of options available to calculate this subindex.<br>
-><b>N_{}</b> [pd.Timedelta]: time until the options the subindex is based on expire.
-><b>VIndex</b> [float]: Final volatility Index for the day
+><b>N_{}</b> [pd.Timedelta]: time until the options the subindex is based on expire.<br>
+><b>VIndex</b> [float]: Final volatility Index for the day<br>
 
 ```python
 VSTOXXCalc.compare_index(index2)
@@ -78,8 +78,8 @@ This function compares the vindex stored in the class to another index provided 
 VSTOXXCalc.save_index(filepath, indexname)
 ```
 This function saves the index created in the class to .xslx. The following parameter need to be handed over:<br>
-><b>filepath</b> [string]: file path were the index.xlsx should be stored. A trailing "\" is required.
-><b>indexname</b> [string]: filename of the excel file
+><b>filepath</b> [string]: file path were the index.xlsx should be stored. A trailing "\" is required.<br>
+><b>indexname</b> [string]: filename of the excel file<br>
 
 ### <a name="pythonvstoxx"></a> 2. Calculation of the VSTOXX Index
 > Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
