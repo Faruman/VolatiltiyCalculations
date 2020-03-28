@@ -4,7 +4,8 @@
 
 - [Introduction](#Introduction)
 - [Volatility Index Calculation (Python)](#volatilityindex)
-- [Erik (R)](#erik)
+- [Volatility Derrivative Pricing (R)](#volatilityderrivatives)
+- [Volatility Trading Strategy (R)](#volatilitytrading)
 - [Team](#team)
 - [Support](#support)
 - [License](#license)
@@ -98,12 +99,18 @@ related files: /msci_world.py<br>
 By running this the following graphics will be created:
 [![Options Available per Day](/python/output/VMSCI_avail_options.png)]()
 [![MSCI World](/python/output/MSCIWorld_lastmonths.png)]()
-[![constructed Volatility Index on the MSC World](/python/output/const_VMSCI5.png)]()
-[![constructed Volatility Index on the MSC World](/python/output/const_VMSCI2.png)]()
+[![constructed Volatility Index on the MSCI World](/python/output/const_VMSCI5.png)]()
+[![constructed Volatility Index on the MSCI World](/python/output/const_VMSCI2.png)]()
 
 ---
 
-## <a name="erik"></a> Erik (/R)
+## <a name="volatilityderrivatives"></a> Volatility Derrivative Pricing (R)
+
+
+
+---
+
+## <a name="volatilitytrading"></a> Volatility Derrivative Pricing (R)
 
 
 
@@ -117,7 +124,7 @@ By running this the following graphics will be created:
 
 ## Support
 
-If you have any queations please reach out to me via my GitHub account.
+If you have any queations please reach out to us via our GitHub accounts.
 
 ---
 
