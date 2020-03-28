@@ -27,11 +27,11 @@ All Data used during this project was sourced from Bloomberg.
 ## <a name="volatilityindex"></a> Volatility Index Calculation (/python)
 
 - [General Information](#pythongeneral)
-- [calculation of the VSTOXX Index](#pythonvstoxx)
-- [creation of a MSCI world volatility index](#pythonmsci)
+- [Calculation of the VSTOXX Index](#pythonvstoxx)
+- [Creation of a MSCI world volatility index](#pythonmsci)
 
 ### <a name="pythongeneral"></a> 1. General Information
-All functions needed to compute the volatility index can be imported from the VIndex package. The other two classes (plotter_class.py and importer_class.py) are just used to get the data ready and plot it in a nice manner and will therefore not discussed further.<br>
+All functions needed to compute the volatility index can be imported from the VIndex package. The other two classes (plotter_class.py and importer_class.py) are just used to get the data ready and plot it in a nice manner and will therefore not be discussed further.<br>
 
 From the VIndex package you can import the volatiltiy class which is used to do all necessary calcualtions. <br>
 To use this class it needs to be initialized with option and interest data. The requirements for this data are as follows:<br>
@@ -79,8 +79,8 @@ This function saves the index created in the class to .xslx. The following param
 >filepath [string]: file path were the index.xlsx should be stored. A trailing "\" is required.
 >indexname [string]: filename of the excel file
 
-### <a name="pythonvstoxx"></a> 2. calculation of the VSTOXX Index
-> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
+### <a name="pythonvstoxx"></a> 2. Calculation of the VSTOXX Index
+> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
 
 Calculation of the 1 month VSTOXX and comparision with the real 1 month VSTOXX to ensure correct implementation.<br>
 related files: /current_vstoxx.py<br>
@@ -91,8 +91,8 @@ By running this the following graphics will be created:
 [![real VSTOXX](/python/output/real_VSTOXX.png)]()
 [![Difference between constructed and real VSTOXX](/python/output/VSTOXX_difference_real_const.png)]()
 
-### <a name="pythonmsci"></a> 3. creation of a MSCI world volatility index
-> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (python/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
+### <a name="pythonmsci"></a> 3. Creation of a MSCI world volatility index
+> Note: Due to copyright restrictions no data can be provided. However in the data.xlsm file (/input/data.xlsm) the general structure of the data can be seen. Furthermore this file can be used to download the data at a Bloomberg terminal.
 
 Creation of a new volatility index based on the MSCI World index.<br>
 related files: /msci_world.py<br>
@@ -118,7 +118,7 @@ By running this the following graphics will be created:
 
 ## Team
 - <a href="http://github.com/drwatson42" target="_blank">`github.com/drwatson42`</a>
-- <a href="http://github.com/faruman" target="_blank">`github.com/faruman`</a> |
+- <a href="http://github.com/faruman" target="_blank">`github.com/faruman`</a>
 
 ---
 
@@ -129,4 +129,4 @@ If you have any queations please reach out to us via our GitHub accounts.
 ---
 
 ## License
-- Copyright 2020 © DrWatson42 & Faruman</a>.
+Copyright 2020 © DrWatson42 & Faruman</a>
