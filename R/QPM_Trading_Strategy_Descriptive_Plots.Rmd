@@ -166,6 +166,8 @@ min_date= as.Date("01/01/2003", format="%m/%d/%Y")
 max_date= as.Date("03/19/2020", format = "%m/%d/%Y")
 time_series_plot_basic(date=SX5E_Index$date,y =SX5E_Index$PX_LAST, title=c("EUROSTOXX50"),ylab = "Index_Points",  min_date = min_date, max_date = max_date)
 
+time_series_plot_basic(date=MXWO_Index$date,y =MXWO_Index$PX_LAST, title=c("MSCI-World"),ylab = "Index_Points",  min_date = min_date, max_date = max_date)
+
 time_series_plot_basic(date=V2X_Index$date,y =V2X_Index$PX_LAST, title=c("VSTOXX"),ylab = "Index_Points / Volatility",  min_date = min_date, max_date = max_date)
 
 data_combine = rbind(SX5E_Index,V2X_Index)
@@ -412,10 +414,10 @@ print(expected_shortfall_annual)
       ylab = "Total Portfolio Return"
       y_percent = TRUE
       title = "Rebalancing with Transaction Cost"
-      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK", "1d_Reb_No_TK","1d_Reb_TK","22d_Reb_No_TK", "22d_Reb_TK")
+      names_y = c("Risk-Free","Only_Stoxx", "No_Reb_No_TK","1d_Reb_TK", "22d_Reb_TK")
       data_x = base_asset_data$date
       
-      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy, y4=d1_Reb_No_TK_Strategy, y6=d22_Reb_No_TK_Strategy, y5 =d1_Reb_TK_Strategy,y7=d22_Reb_TK_Strategy)
+      line_plot_multiple(title=title,x=data_x, xlab = xlab, names_y = names_y, ylab = ylab, y_percent = y_percent, y1=r_f_strategy,y2=Only_Stoxx_Strategy, y3=No_Reb_No_TK_Strategy, y4=d1_Reb_TK_Strategy, y5=d22_Reb_TK_Strategy)
       
       
 

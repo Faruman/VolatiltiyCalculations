@@ -578,6 +578,13 @@ start_day_estimation = as.Date("2020-01-01")
 end_day_estimation = as.Date("2020-03-19") # make sure last day is some days before first maturity date. 
 current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estimation & V2X_Index$date<=end_day_estimation]) # all business days in timeframe
 
+# start parameters for optimization
+  # minimum parameter size = 0 
+  kappa = 0.2
+  theta = 25
+  sigma = 0.2
+  startParms = c(kappa, theta, sigma)
+
 # estimate parameters for each combintion of maturity date and current date
 
   estimated_parameters = list() # collect one dataframe per maturity
@@ -614,18 +621,11 @@ current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estima
           # wrap input data for Loss Function and Price Calculation in List
             input_list_loss_function = list(method, zeta, time_to_maturity, input_call$PX_LAST,input_put$PX_LAST,input_forward$PX_LAST,input_call$strike,input_put$strike,input_underlying$PX_LAST,input_rf$rate)
             names(input_list_loss_function) = c("method", "zeta", "time_to_maturity", "observed_call_prices","observed_put_prices","observed_forward_price","strike_call","strike_put","current_price_underlying","riskfree")
-            
-          # start parameters for optimization
-            # minimum parameter size = 0 
-            kappa = 0.2
-            theta = 25
-            sigma = 0.2
-            startParms = c(kappa, theta, sigma)
 
         # optimization: minimize loss function wrt to start Parameters (kappa, theta, sigma)
             optimOut <- optimx(startParms, function(startParms) loss_function(startParms,input_list=input_list_loss_function), gr = NULL,
                    method = c("L-BFGS-B"),
-                   lower = 0, upper = Inf,
+                   lower = 0, upper = Inf, # parms >0
                    control = list(), hessian = FALSE)
 
         # save estimated parameters
