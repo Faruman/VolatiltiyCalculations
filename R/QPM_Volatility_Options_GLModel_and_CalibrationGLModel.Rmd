@@ -573,18 +573,25 @@ at_the_money_bounds = c(0.3,4) # optional: only use options that are reasonably 
 ```{r parameterCalibration ,  output=FALSE}
 
 # maturity dates and estimation days for calibration
-maturities_calibration = as.Date(v2x_future_maturities)[2:length(v2x_future_maturities)]
+maturities_calibration = as.Date(v2x_future_maturities)[2:6]
 start_day_estimation = as.Date("2020-01-01")
 end_day_estimation = as.Date("2020-03-19") # make sure last day is some days before first maturity date. 
 current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estimation & V2X_Index$date<=end_day_estimation]) # all business days in timeframe
 
-# start parameters for optimization
+# grid search for parameter optima
   # minimum parameter size = 0 
-  kappa = 0.2
-  theta = 25
-  sigma = 0.2
-  startParms = c(kappa, theta, sigma)
-
+  # define ONLY VALUES -> grid is created out of them 
+  kappa = c(1,10,25,40,60,90)
+  theta = c(rep(1,length(kappa)),rep(10,length(kappa)),rep(25,length(kappa)),rep(40,length(kappa)),rep(60, length(kappa)),rep(90, length(kappa)))
+  sigma = c(rep(1,length(kappa)^2),rep(10,length(kappa)^2),rep(25,length(kappa)^2),rep(40,length(kappa)^2),rep(60, length(kappa)^2),rep(90, length(kappa)^2))
+  gridsearch_start <- as.data.frame(cbind(kappa,theta,sigma))
+  colnames(gridsearch_start) <- c("kappa_start", "theta_start", "sigma_start")
+  
+  # if gridsearch disabled: use these starting parms
+  kappa_scalar = 25
+  theta_scalar  = 25
+  sigma_scalar  = 25
+  
 # estimate parameters for each combintion of maturity date and current date
 
   estimated_parameters = list() # collect one dataframe per maturity
@@ -597,6 +604,8 @@ current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estima
     parms_one_maturity$kappa = NA
     parms_one_maturity$theta = NA
     parms_one_maturity$sigma = NA
+    parms_one_maturity$Min_of_Loss_Function = NA
+    parms_one_maturity$convergence_code = NA
     parms_one_maturity$number_options = NA
     parms_one_maturity$future = NA
   
@@ -607,31 +616,75 @@ current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estima
        
           input_call = filter(v2x_call, maturity==maturity_date & date == current_date)[c("PX_LAST","strike","PX_VOLUME")]
           input_put = filter(v2x_put, maturity==maturity_date & date == current_date)[c("PX_LAST","strike","PX_VOLUME")]
-          input_forward = filter(v2x_futures, maturity==maturity_date & date == current_date)[c("PX_LAST","PX_VOLUME")]
           input_rf = filter(EURIBOR1M, date == current_date)
           input_underlying = filter(V2X_Index, date == current_date)
           
-        # check if option and future data available, otherwise skip day
-        if((nrow(input_call)+nrow(input_put))>0 & nrow(input_forward)>0) {
+          # include FW in loss function? 
+          include_forward = TRUE
+          if(include_forward == TRUE) {
+            input_forward = filter(v2x_futures, maturity==maturity_date & date == current_date)[c("PX_LAST","PX_VOLUME")]
+          } else {
+            input_forward = NULL
+          }
+
+        # check if option data available, otherwise skip day. Day without future is ok
+        if((nrow(input_call)+nrow(input_put))>0) {
           
           zeta = 0 # no estimation of zeta (vola premium)
-          method = "MSE" # method for loss function
+          method = "RMSE" # method for loss function
+          gridsearch_on = TRUE
       
             
-          # wrap input data for Loss Function and Price Calculation in List
-            input_list_loss_function = list(method, zeta, time_to_maturity, input_call$PX_LAST,input_put$PX_LAST,input_forward$PX_LAST,input_call$strike,input_put$strike,input_underlying$PX_LAST,input_rf$rate)
-            names(input_list_loss_function) = c("method", "zeta", "time_to_maturity", "observed_call_prices","observed_put_prices","observed_forward_price","strike_call","strike_put","current_price_underlying","riskfree")
+        # wrap input data for Loss Function and Price Calculation in List
+          input_list_loss_function = list(method, zeta, time_to_maturity, input_call$PX_LAST,input_put$PX_LAST,input_forward$PX_LAST,input_call$strike,input_put$strike,input_underlying$PX_LAST,input_rf$rate)
+          names(input_list_loss_function) = c("method", "zeta", "time_to_maturity", "observed_call_prices","observed_put_prices","observed_forward_price","strike_call","strike_put","current_price_underlying","riskfree")
+        # Optimization: gridsearch or single set of starting parms
+        if(gridsearch_on == TRUE){
+          
+        # gridsearch result dataset for parameters
+          gridsearch_results = as.data.frame(matrix(,nrow=nrow(gridsearch_start),ncol= ncol(gridsearch_start)+2))
+          colnames(gridsearch_results)= c("kappa_optim", "theta_optim", "sigma_optim","Min_of_Loss_Function", "convergence_code")
+          
+          for (k in 1:nrow(gridsearch_results)){
+            startParms = c(gridsearch_start[k,1],gridsearch_start[k,2],gridsearch_start[k,3])
+            
+              # optimization: minimize loss function wrt to start Parameters (kappa, theta, sigma)
+              optimOut <- optimx(startParms, function(startParms) loss_function(startParms,input_list=input_list_loss_function), gr = NULL,
+                     method = c("L-BFGS-B"),
+                     lower = 0, upper = Inf, # parms >0
+                     control = list(), hessian = FALSE)
+              # save parameters in grid
+               gridsearch_results[k,1] = optimOut$p1
+               gridsearch_results[k,2] = optimOut$p2
+               gridsearch_results[k,3] = optimOut$p3
+               gridsearch_results[k,4] = optimOut$value
+               gridsearch_results[k,5] = optimOut$convcode
+          }
+          # select parameters with lowest value of loss function. If same value, choose first parameter set
+          min_loss_position = which(gridsearch_results$Min_of_Loss_Function == min(gridsearch_results$Min_of_Loss_Function))
+          opt_parms = as.vector(gridsearch_results[min_loss_position[1],])
+        } 
+          
 
-        # optimization: minimize loss function wrt to start Parameters (kappa, theta, sigma)
-            optimOut <- optimx(startParms, function(startParms) loss_function(startParms,input_list=input_list_loss_function), gr = NULL,
-                   method = c("L-BFGS-B"),
-                   lower = 0, upper = Inf, # parms >0
-                   control = list(), hessian = FALSE)
+        # if no gridsearch: use single given starting parameters
+            else {
+              # define starting parameters
+              startParms = c(kappa_scalar, theta_scalar, sigma_scalar)  
+              
+              # optimization: minimize loss function wrt to start Parameters (kappa, theta, sigma)
+              optimOut <- optimx(startParms, function(startParms) loss_function(startParms,input_list=input_list_loss_function), gr = NULL,
+                     method = c("L-BFGS-B"),
+                     lower = 0, upper = Inf, # parms >0
+                     control = list(), hessian = FALSE)
+              opt_parms = c(optimOut$p1,optimOut$p2,optimOut$p3,optimOut$value, optimOut$convcode)
+            }
 
         # save estimated parameters
-            parms_one_maturity$kappa[j] = optimOut[,1]
-            parms_one_maturity$theta[j] = optimOut[,2]
-            parms_one_maturity$sigma[j] = optimOut[,3]
+            parms_one_maturity$kappa[j] = opt_parms[1]
+            parms_one_maturity$theta[j] = opt_parms[2]
+            parms_one_maturity$sigma[j] = opt_parms[3]
+            parms_one_maturity$Min_of_Loss_Function[j] = opt_parms[4]
+            parms_one_maturity$convergence_code[j] = opt_parms[5]
             parms_one_maturity$number_options[j] = length(input_list_loss_function$strike_call) +length(input_list_loss_function$strike_put)
             parms_one_maturity$future[j] = length(input_list_loss_function$observed_forward_price)
             
@@ -645,7 +698,11 @@ current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estima
   names_dataframes = paste("maturity", seq(1:length(maturities_calibration)), sep="")
   names(estimated_parameters) = names_dataframes
 
-      
+  # transform list elements to tibbles
+    for (i in 1:length(estimated_parameters)) {
+      estimated_parameters[[i]] = as.data.frame(estimated_parameters[[i]])
+    }
+    
 # IMPORTANT Notes for estimation: good settings
   # filter Vol=5
   # MSE converges more often
@@ -655,7 +712,7 @@ current_day_estimation = as.Date(V2X_Index$date[V2X_Index$date>=start_day_estima
     # 2020-03-13 TO 2020-03-16 - sharp unexplanable drop. see what happens
     # non-convergence even if data is there. try manually, maybe adjust filter
 
-   save(estimated_parameters, file = "./r_output/estimated_parameters.Rdata")
+   save(estimated_parameters, file = "./r_output/estimated_parameters_RMSE_FW.Rdata")
 ```
 
 ## Results
@@ -700,6 +757,11 @@ write.xlsx(table_1_mat, "./r_output/table_1_mat.xlsx")
   parms_plot_date_1 = filter(estimated_parameters$maturity1, current_day_estimation == plot_date_1)[c("kappa", "theta", "sigma")]
   parms_plot_date_2 = filter(estimated_parameters$maturity1, current_day_estimation == plot_date_2)[c("kappa", "theta", "sigma")]
 
+  parms_plot_date_1 = do.call(cbind.data.frame, parms_plot_date_1) # transform to pure data frame for referencing
+  parms_plot_date_2 = do.call(cbind.data.frame, parms_plot_date_2) # transform to pure data frame for referencing
+  colnames(parms_plot_date_1) = c("kappa", "theta", "sigma")
+  colnames(parms_plot_date_2) = c("kappa", "theta", "sigma")
+    
 # get option prices
   # calc theoretical call option prices
     price_call_model_1 = gl96_call_option(kappa_call=parms_plot_date_1$kappa, zeta_call=zeta, theta_call=parms_plot_date_1$theta ,sigma_call = parms_plot_date_1$sigma, T_call=time_to_maturity_1,strike_call=strikes_1, current_value_underlying = current_value_underlying_1, riskfree_call= r_f_1)
@@ -741,6 +803,12 @@ write.xlsx(table_1_mat, "./r_output/table_1_mat.xlsx")
       parms_term_struc_1[i,] = filter(estimated_parameters[[i]], current_day_estimation == plot_date_1)[c("kappa", "theta", "sigma")]
       parms_term_struc_2[i,] = filter(estimated_parameters[[i]], current_day_estimation == plot_date_2)[c("kappa", "theta", "sigma")]
     }
+    parms_term_struc_1 <- data.frame(t(matrix(unlist(parms_term_struc_1), nrow=length(parms_term_struc_1), byrow=T))) # transform to pure data frame for referencing
+    parms_term_struc_2 <- data.frame(t(matrix(unlist(parms_term_struc_2), nrow=length(parms_term_struc_2), byrow=T))) # transform to pure data frame for referencing
+    colnames(parms_term_struc_1) = c("kappa", "theta", "sigma")
+    colnames(parms_term_struc_2) = c("kappa", "theta", "sigma") 
+      
+    
     
     # calulate model forwards
       future_model_term_struc_1 = gl96_forward(parms_term_struc_1$kappa, parms_term_struc_1$theta, time_to_maturity_term_struc_1, current_value_underlying_1)
@@ -766,6 +834,8 @@ write.xlsx(table_1_mat, "./r_output/table_1_mat.xlsx")
       
 
 ### MXWO Derivatives
+      
+  # scale prices with ratio VSTOXX VMSCI
 
   strikes_mxwo = seq(1:100)
   current_value_underlying_1_mxwo = filter(VMSCI, date == plot_date_1)$PX_LAST
